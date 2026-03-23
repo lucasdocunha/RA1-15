@@ -47,8 +47,21 @@ def estadoNumero(entrada, i):
     
     return ('NUM', numero), i
             
+def estadoComandoEspeciais(entrada, i):
+    try:
+        palavra = entrada[i:i+3]
+    except:
+        raise Exception("ERRO: Não é um comando especial!")
+    
+    if palavra in ['RES', 'MEM']:
+        return (palavra), i + 3
+    else:
+        raise Exception("ERRO: Não é um comando especial válido")
+            
 def estadoOperador(entrada, i):
     if operacoes(entrada[i]):
+        if entrada[i+1] == "/":
+            return ("OP", entrada[i:i+2]), i+2
         return ("OP", entrada[i]), i + 1
 
 def estadoParenteses(entrada, i):
@@ -80,6 +93,9 @@ def parseExpressao(linha) -> list[str]:
         elif parenteses(linha[i]):
             token, i = estadoParenteses(linha, i)
             
+        elif linha[i] in ['R', 'M']:
+            token, i = estadoComandoEspeciais(linha, i)
+            
         else:
             raise Exception("ERRO: Caractere inválido")
         
@@ -89,7 +105,7 @@ def parseExpressao(linha) -> list[str]:
 
 #teste 
 
-teste = "3.4 + (4 ^ 5 ) // 3"
+teste = "3.4 + ((4 ^ 5 ) // 3 + (MEM) + 5 RES"
 tokens = parseExpressao(teste)
 
 print(tokens)
