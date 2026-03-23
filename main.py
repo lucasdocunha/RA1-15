@@ -4,7 +4,7 @@
 
 
 
-##validadores de formato:
+#validadores de formato:
 
 def digito(z):
     if z >= '0' and z <= '9':
@@ -48,15 +48,15 @@ def estadoNumero(entrada, i):
     return ('NUM', numero), i
             
 def estadoComandoEspeciais(entrada, i):
-    try:
-        palavra = entrada[i:i+3]
-    except:
-        raise Exception("ERRO: Não é um comando especial!")
+    palavra = ""
+    while i < len(entrada):
+        if entrada[i].isupper():
+            palavra += entrada[i]
+            i += 1 
+        else: 
+            break
     
-    if palavra in ['RES', 'MEM']:
-        return (palavra), i + 3
-    else:
-        raise Exception("ERRO: Não é um comando especial válido")
+    return ("CE", palavra), i + 3
             
 def estadoOperador(entrada, i):
     if operacoes(entrada[i]):
@@ -93,7 +93,7 @@ def parseExpressao(linha) -> list[str]:
         elif parenteses(linha[i]):
             token, i = estadoParenteses(linha, i)
             
-        elif linha[i] in ['R', 'M']:
+        elif linha[i].isupper():
             token, i = estadoComandoEspeciais(linha, i)
             
         else:
@@ -102,7 +102,6 @@ def parseExpressao(linha) -> list[str]:
         tokens.append(token)
         
     return tokens
-
 
 
 if __name__ == ("__main__"):
