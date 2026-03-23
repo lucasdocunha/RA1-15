@@ -103,11 +103,24 @@ def parseExpressao(linha) -> list[str]:
         
     return tokens
 
-#teste 
 
-teste = "3.4 + ((4 ^ 5 ) // 3 + (MEM) + 5 RES"
-tokens = parseExpressao(teste)
 
-print(tokens)
+if __name__ == ("__main__"):
+    import argparse
+    parser = argparse.ArgumentParser(description="A script that processes a single file argument.")
 
-3 + 5 
+    parser.add_argument(
+        "filename", 
+        type=str,
+    )
+
+    args = parser.parse_args()
+    
+    arquivo = args.filename
+
+    with open(arquivo, 'r') as f:
+        linhas = f.readlines()
+        
+    for linha in linhas:
+        tokens = parseExpressao(linha)
+        print(tokens)
