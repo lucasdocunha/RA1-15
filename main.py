@@ -80,7 +80,7 @@ def parseExpressao(linha) -> list[str]:
     i = 0
     while i < len(linha):
         
-        if linha[i] == " ":
+        if linha[i] == " " or linha[i] == '\n':
             i = i + 1
             continue
         
@@ -97,7 +97,7 @@ def parseExpressao(linha) -> list[str]:
             token, i = estadoComandoEspeciais(linha, i)
             
         else:
-            raise Exception("ERRO: Caractere inválido")
+            raise Exception("ERRO: Caractere inválido", linha[i])
         
         tokens.append(token)
         
