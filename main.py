@@ -1,11 +1,8 @@
-## Lucas de Oliveira Cunha - lucasdocunha
-## Tiago de Brito Follador - TiagoFollador
-## Grupo 15  
-
-
+# Lucas de Oliveira Cunha - lucasdocunha
+# Tiago de Brito Follador - TiagoFollador
+# Grupo 15  
 
 #validadores de formato:
-
 def digito(z):
     if z >= '0' and z <= '9':
         return True
@@ -67,7 +64,7 @@ def estadoOperador(entrada, i):
 def estadoParenteses(entrada, i):
     p = entrada[i]
     if parenteses(p):
-        if p == ")":
+        if p == "(":
             #PI -> parenteses inicial
             return ("PI", p), i + 1
         else:
@@ -106,7 +103,7 @@ def parseExpressao(linha) -> list[str]:
 
 if __name__ == ("__main__"):
     import argparse
-    parser = argparse.ArgumentParser(description="A script that processes a single file argument.")
+    parser = argparse.ArgumentParser()
 
     parser.add_argument(
         "filename", 
