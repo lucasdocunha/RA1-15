@@ -1,11 +1,8 @@
-## Lucas de Oliveira Cunha - lucasdocunha
-## Tiago de Brito Follador - TiagoFollador
-## Grupo 15  
+# Lucas de Oliveira Cunha - lucasdocunha
+# Tiago de Brito Follador - TiagoFollador
+# Grupo 15  
 
-
-
-##validadores de formato:
-
+#validadores de formato:
 def digito(z):
     if z >= '0' and z <= '9':
         return True
@@ -47,14 +44,27 @@ def estadoNumero(entrada, i):
     
     return ('NUM', numero), i
             
+def estadoComandoEspeciais(entrada, i):
+    palavra = ""
+    while i < len(entrada):
+        if entrada[i].isupper():
+            palavra += entrada[i]
+            i += 1 
+        else: 
+            break
+    
+    return ("CE", palavra), i + 3
+            
 def estadoOperador(entrada, i):
     if operacoes(entrada[i]):
+        if entrada[i+1] == "/":
+            return ("OP", entrada[i:i+2]), i+2
         return ("OP", entrada[i]), i + 1
 
 def estadoParenteses(entrada, i):
     p = entrada[i]
     if parenteses(p):
-        if p == ")":
+        if p == "(":
             #PI -> parenteses inicial
             return ("PI", p), i + 1
         else:
@@ -67,7 +77,7 @@ def parseExpressao(linha) -> list[str]:
     i = 0
     while i < len(linha):
         
-        if linha[i] == " ":
+        if linha[i] == " " or linha[i] == '\n':
             i = i + 1
             continue
         
@@ -80,18 +90,33 @@ def parseExpressao(linha) -> list[str]:
         elif parenteses(linha[i]):
             token, i = estadoParenteses(linha, i)
             
+        elif linha[i].isupper():
+            token, i = estadoComandoEspeciais(linha, i)
+            
         else:
-            raise Exception("ERRO: Caractere inválido")
+            raise Exception("ERRO: Caractere inválido", linha[i])
         
         tokens.append(token)
         
     return tokens
 
-#teste 
 
-teste = "3.4 + (4 ^ 5 ) // 3"
-tokens = parseExpressao(teste)
+if __name__ == ("__main__"):
+    import argparse
+    parser = argparse.ArgumentParser()
 
-print(tokens)
+    parser.add_argument(
+        "filename", 
+        type=str,
+    )
 
-3 + 5 
+    args = parser.parse_args()
+    
+    arquivo = args.filename
+
+    with open(arquivo, 'r') as f:
+        linhas = f.readlines()
+        
+    for linha in linhas:
+        tokens = parseExpressao(linha)
+        print(tokens)
