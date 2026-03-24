@@ -100,6 +100,21 @@ def parseExpressao(linha) -> list[str]:
         
     return tokens
 
+def executarExpressao(tokens):
+    # precisamos abrir os tokens e inserir eles 
+    # em ordem de precedencia(pilha)
+    # onde os parenteses tem maior precedencia
+    # e precisaomos entrar no mais afundo e retornar ao comeco com as expressoes
+    #
+    # - precisamos de uma pilha para armazenar a ordem dos tokens
+    # - precisamos de uma variavel/contante para definir uma conta
+    #   que é resultante da anterior ou concatena com a anterior
+    
+    statck = []
+
+    for token in tokens:
+        
+    pass
 
 if __name__ == ("__main__"):
     import argparse
@@ -119,4 +134,4 @@ if __name__ == ("__main__"):
         
     for linha in linhas:
         tokens = parseExpressao(linha)
-        print(tokens)
+        executarExpressao(tokens)
