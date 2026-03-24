@@ -9,7 +9,7 @@ def digito(z):
     return False
     
 def operacoes(z):
-    if z in ['/', '*', '-', '+', '%', "^"]:
+    if z in ['/', '*', '-', '+', '%', "^", "//"]:
         return True
     return False
 
@@ -18,6 +18,7 @@ def parenteses(z):
         return True
     return False
 
+#estados:
 def estadoNumero(entrada, i):
     numero = ""
     real = False
@@ -40,7 +41,8 @@ def estadoNumero(entrada, i):
             break
         
         i = i + 1      
-        
+    
+    #numero não pode ser só ., não pode começar ou terminar com .
     if numero == "." or numero[0] == "." or numero[-1] == ".":
         erro = True
     
@@ -50,6 +52,7 @@ def estadoComandoEspeciais(entrada, i):
     palavra = ""
     erro = False
     while i < len(entrada):
+        #pega até não ser mais maiusculo
         if entrada[i].isupper():
             palavra += entrada[i]
             i += 1 
@@ -57,13 +60,14 @@ def estadoComandoEspeciais(entrada, i):
             erro = True
             break
     
+    #CE -> Comando especial
     return ("CE", palavra), i + 3, erro
             
 def estadoOperador(entrada, i):
     erro = False
     if operacoes(entrada[i]):
-        if entrada[i+1] == "/":
-            return ("OP", entrada[i:i+2]), i+2, erro
+        if operacoes(entrada[i:i+2]):
+            return ("OP", entrada[i:i+2]), i+2, erro #verificação do //
         return ("OP", entrada[i]), i + 1, erro
 
 def estadoParenteses(entrada, i):
@@ -83,7 +87,6 @@ def parseExpressao(linha) -> list[str]:
     i = 0
     erro = False
     while i < len(linha):
-        #print(linha[i])
         if linha[i] == " " or linha[i] == '\n':
             i = i + 1
             continue
@@ -186,7 +189,7 @@ if __name__ == ("__main__"):
     for idx, linha in enumerate(linhas):
         tokens, erro = parseExpressao(linha)
 
-        print(f"Linha {idx}: {tokens}")
+        print(f"Linha {idx+1}: {tokens}")
         if erro:
             print(f"Linha inválida!")
         else:
