@@ -110,6 +110,37 @@ def parseExpressao(linha) -> list[str]:
         
     return tokens, erro
 
+def executarExpressao(tokens):
+
+    # Recebe tuplas de tokens e retorna dicioinario em ordem de precedencia
+
+    # precisamos abrir os tokens e inserir eles 
+    # em ordem de precedencia(pilha)
+    # onde os parenteses tem maior precedencia
+    # e precisaomos entrar no mais afundo e retornar ao comeco com as expressoes
+    #
+    # - precisamos de uma pilha para armazenar a ordem dos tokens
+    # - precisamos de uma variavel/contante para definir uma conta
+    #   que é resultante da anterior ou concatena com a anterior
+    
+    stack = []
+    order = {}
+    expressionOrder = 0
+    for token in tokens:
+        if token[0] != 'PF':
+            stack.append(token)
+        else: 
+            currentExpression = []
+            while stack and stack[-1][0] != "PI":
+                currentExpression.append(stack.pop())
+            
+            currentExpression.reverse() # manter a ordem esperada (A B OP)
+            key = f"EXP{expressionOrder}" # key para sabermos a qual expressao se refere
+            order[key] = currentExpression
+            stack.append(("EXP", key)) 
+            expressionOrder += 1
+    return order
+
 
 if __name__ == ("__main__"):
     import argparse
@@ -133,3 +164,8 @@ if __name__ == ("__main__"):
             print("Linha inválida!")
         else:
             print(tokens)
+            print('\n') # formatado para visualizar melhor
+            ordem = executarExpressao(tokens)
+            for key, value in ordem.items():
+                print(f"{key}: {value}")
+            print("================================================================\n")
