@@ -123,49 +123,77 @@ def executarExpressao(tokens):
     # - precisamos de uma variavel/contante para definir uma conta
     #   que é resultante da anterior ou concatena com a anterior
     
-    stack = []
-    order = {}
-    expressionOrder = 0
+    pilha = []
+    ordem = {}
+    ordem_da_expressao = 0
+    erro = False
+
     for token in tokens:
         if token[0] != 'PF':
-            stack.append(token)
-        else: 
-            currentExpression = []
-            while stack and stack[-1][0] != "PI":
-                currentExpression.append(stack.pop())
-            
-            currentExpression.reverse() # manter a ordem esperada (A B OP)
-            key = f"EXP{expressionOrder}" # key para sabermos a qual expressao se refere
-            order[key] = currentExpression
-            stack.append(("EXP", key)) 
-            expressionOrder += 1
-    return order
+            pilha.append(token)
+        else:
+            expressao_atual = []
+
+            # contra pilha vazia
+            if not pilha:
+                erro = True
+
+            while pilha and pilha[-1][0] != 'PI':
+                expressao_atual.append(pilha.pop())
+
+            # contra PI não encontrado
+            if not pilha or pilha[-1][0] != 'PI':
+                erro = True
+
+            pilha.pop()
+
+            expressao_atual.reverse()
+
+            key = f"EXP{ordem_da_expressao}"
+            ordem[key] = expressao_atual
+            pilha.append(("EXP", key))
+            ordem_da_expressao += 1
+
+    # verifica se num tem parênteses não fechados
+    itens_restantes = [t for t in pilha if t[0] == 'PI']
+    if itens_restantes:
+        erro = True
+
+    return ordem, erro
+    
+
+def lerArquivo(arquivo:str):
+    with open(arquivo, 'r') as f:
+        return f.readlines()
+    
+def exibirResultados(resultados):
+    pass
 
 
 if __name__ == ("__main__"):
     import argparse
     parser = argparse.ArgumentParser()
-
     parser.add_argument(
         "filename", 
         type=str,
     )
-
     args = parser.parse_args()
-    
     arquivo = args.filename
+    
+    linhas = lerArquivo(arquivo)
 
-    with open(arquivo, 'r') as f:
-        linhas = f.readlines()
         
-    for linha in linhas:
+    for idx, linha in enumerate(linhas):
         tokens, erro = parseExpressao(linha)
+
+        print(f"Linha {idx}: {tokens}")
         if erro:
-            print("Linha inválida!")
+            print(f"Linha inválida!")
         else:
-            print(tokens)
-            print('\n') # formatado para visualizar melhor
-            ordem = executarExpressao(tokens)
-            for key, value in ordem.items():
-                print(f"{key}: {value}")
-            print("================================================================\n")
+            ordem, erro = executarExpressao(tokens)
+            if erro:
+                print(f"Linha inválida!")
+            else:
+                for key, value in ordem.items():
+                    print(f"{key}: {value}")
+        print("================================================================\n")
