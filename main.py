@@ -164,3 +164,8 @@ if __name__ == ("__main__"):
             print("Linha inválida!")
         else:
             print(tokens)
+            print('\n') # formatado para visualizar melhor
+            ordem = executarExpressao(tokens)
+            for key, value in ordem.items():
+                print(f"{key}: {value}")
+            print("================================================================\n")
