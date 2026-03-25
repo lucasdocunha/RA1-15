@@ -169,6 +169,49 @@ def lerArquivo(arquivo:str):
     with open(arquivo, 'r') as f:
         return f.readlines()
     
+def gerarAssembly(tokens):    
+    
+    codigo_final = []
+    codigo_final.append(".global _start")
+    codigo_final.append("_start:")
+    
+    operadores = {
+        '+': "VADD.F64",
+        '-': "VSUB.F64",
+        "*": "VMUL.F64",
+        "/": "VDIV.F64"
+    }
+    
+    
+    for exp, data in tokens.items():
+        
+        operando_a, operando_b, operador = data[0], data[1], data[2]
+        
+        #ir fazendo um para cada agora 
+        #tem que ver como faz as labels tbm
+            
+    return "".join(codigo_final)
+        
+#D0 é a base D1 é o expoente
+def calcular_potenciacao(expressao):
+    return f"""
+    @ potenciacao {expressao}
+        VCVT.S32.F64 S1, D1
+        VMOV R1, S1
+        LDR R0, =const_1_0
+        VLDR D2, [R0]
+        
+    pow_loop_{expressao}:
+        CMP R1, #0
+        BLE pow_end_{expressao}
+        VMUL.F64 D2, D2, D0
+        SUB R1, R1, #1
+        B pow_loop_{expressao}
+        
+    pow_end_{expressao}:
+    """
+    
+    
 def exibirResultados(resultados):
     pass
 
@@ -189,7 +232,7 @@ if __name__ == ("__main__"):
     for idx, linha in enumerate(linhas):
         tokens, erro = parseExpressao(linha)
 
-        print(f"Linha {idx+1}: {tokens}")
+        print(f"\nLinha {idx+1}: {tokens}")
         if erro:
             print(f"Linha inválida!")
         else:
@@ -198,5 +241,5 @@ if __name__ == ("__main__"):
                 print(f"Linha inválida!")
             else:
                 for key, value in ordem.items():
-                    print(f"{key}: {value}")
-        print("================================================================\n")
+                    print(gerarAssembly(ordem))
+
