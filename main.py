@@ -166,9 +166,12 @@ def executarExpressao(tokens):
     
 
 def lerArquivo(arquivo:str):
-    with open(arquivo, 'r') as f:
-        return f.readlines()
-    
+    try:
+        with open(arquivo, 'r') as f:
+            return f.readlines()
+    except Exception as e:
+        print(f"Não foi possível abrir o arquivo {arquivo} - erro: {e}")
+        
 def gerarAssembly(tokens):    
     
     codigo_final = []
@@ -241,5 +244,6 @@ if __name__ == ("__main__"):
                 print(f"Linha inválida!")
             else:
                 for key, value in ordem.items():
-                    print(gerarAssembly(ordem))
+                    #print(gerarAssembly(ordem))
+                    print(key, value)
 
