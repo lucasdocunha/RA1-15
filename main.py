@@ -9,7 +9,7 @@ def digito(z):
     return False
     
 def operacoes(z):
-    if z in ['/', '*', '-', '+', '%', "^"]:
+    if z in ['/', '*', '-', '+', '%', "^", "//"]:
         return True
     return False
 
@@ -18,6 +18,7 @@ def parenteses(z):
         return True
     return False
 
+#estados:
 def estadoNumero(entrada, i):
     numero = ""
     real = False
@@ -40,7 +41,8 @@ def estadoNumero(entrada, i):
             break
         
         i = i + 1      
-        
+    
+    #numero não pode ser só ., não pode começar ou terminar com .
     if numero == "." or numero[0] == "." or numero[-1] == ".":
         erro = True
     
@@ -50,6 +52,7 @@ def estadoComandoEspeciais(entrada, i):
     palavra = ""
     erro = False
     while i < len(entrada):
+        #pega até não ser mais maiusculo
         if entrada[i].isupper():
             palavra += entrada[i]
             i += 1 
@@ -57,13 +60,14 @@ def estadoComandoEspeciais(entrada, i):
             erro = True
             break
     
+    #CE -> Comando especial
     return ("CE", palavra), i + 3, erro
             
 def estadoOperador(entrada, i):
     erro = False
     if operacoes(entrada[i]):
-        if entrada[i+1] == "/":
-            return ("OP", entrada[i:i+2]), i+2, erro
+        if operacoes(entrada[i:i+2]):
+            return ("OP", entrada[i:i+2]), i+2, erro #verificação do //
         return ("OP", entrada[i]), i + 1, erro
 
 def estadoParenteses(entrada, i):
@@ -83,7 +87,6 @@ def parseExpressao(linha) -> list[str]:
     i = 0
     erro = False
     while i < len(linha):
-        #print(linha[i])
         if linha[i] == " " or linha[i] == '\n':
             i = i + 1
             continue
@@ -123,49 +126,124 @@ def executarExpressao(tokens):
     # - precisamos de uma variavel/contante para definir uma conta
     #   que é resultante da anterior ou concatena com a anterior
     
-    stack = []
-    order = {}
-    expressionOrder = 0
+    pilha = []
+    ordem = {}
+    ordem_da_expressao = 0
+    erro = False
+
     for token in tokens:
         if token[0] != 'PF':
-            stack.append(token)
-        else: 
-            currentExpression = []
-            while stack and stack[-1][0] != "PI":
-                currentExpression.append(stack.pop())
+            pilha.append(token)
+        else:
+            expressao_atual = []
+
+            # contra pilha vazia
+            if not pilha:
+                erro = True
+
+            while pilha and pilha[-1][0] != 'PI':
+                expressao_atual.append(pilha.pop())
+
+            # contra PI não encontrado
+            if not pilha or pilha[-1][0] != 'PI':
+                erro = True
+
+            pilha.pop()
+
+            expressao_atual.reverse()
+
+            key = f"EXP{ordem_da_expressao}"
+            ordem[key] = expressao_atual
+            pilha.append(("EXP", key))
+            ordem_da_expressao += 1
+
+    # verifica se num tem parênteses não fechados
+    itens_restantes = [t for t in pilha if t[0] == 'PI']
+    if itens_restantes:
+        erro = True
+
+    return ordem, erro
+    
+
+def lerArquivo(arquivo:str):
+    try:
+        with open(arquivo, 'r') as f:
+            return f.readlines()
+    except Exception as e:
+        print(f"Não foi possível abrir o arquivo {arquivo} - erro: {e}")
+        
+def gerarAssembly(tokens):    
+    
+    codigo_final = []
+    codigo_final.append(".global _start")
+    codigo_final.append("_start:")
+    
+    operadores = {
+        '+': "VADD.F64",
+        '-': "VSUB.F64",
+        "*": "VMUL.F64",
+        "/": "VDIV.F64"
+    }
+    
+    
+    for exp, data in tokens.items():
+        
+        operando_a, operando_b, operador = data[0], data[1], data[2]
+        
+        #ir fazendo um para cada agora 
+        #tem que ver como faz as labels tbm
             
-            currentExpression.reverse() # manter a ordem esperada (A B OP)
-            key = f"EXP{expressionOrder}" # key para sabermos a qual expressao se refere
-            order[key] = currentExpression
-            stack.append(("EXP", key)) 
-            expressionOrder += 1
-    return order
+    return "".join(codigo_final)
+        
+#D0 é a base D1 é o expoente
+def calcular_potenciacao(expressao):
+    return f"""
+    @ potenciacao {expressao}
+        VCVT.S32.F64 S1, D1
+        VMOV R1, S1
+        LDR R0, =const_1_0
+        VLDR D2, [R0]
+        
+    pow_loop_{expressao}:
+        CMP R1, #0
+        BLE pow_end_{expressao}
+        VMUL.F64 D2, D2, D0
+        SUB R1, R1, #1
+        B pow_loop_{expressao}
+        
+    pow_end_{expressao}:
+    """
+    
+    
+def exibirResultados(resultados):
+    pass
 
 
 if __name__ == ("__main__"):
     import argparse
     parser = argparse.ArgumentParser()
-
     parser.add_argument(
         "filename", 
         type=str,
     )
-
     args = parser.parse_args()
-    
     arquivo = args.filename
+    
+    linhas = lerArquivo(arquivo)
 
-    with open(arquivo, 'r') as f:
-        linhas = f.readlines()
         
-    for linha in linhas:
+    for idx, linha in enumerate(linhas):
         tokens, erro = parseExpressao(linha)
+
+        print(f"\nLinha {idx+1}: {tokens}")
         if erro:
-            print("Linha inválida!")
+            print(f"Linha inválida!")
         else:
-            print(tokens)
-            print('\n') # formatado para visualizar melhor
-            ordem = executarExpressao(tokens)
-            for key, value in ordem.items():
-                print(f"{key}: {value}")
-            print("================================================================\n")
+            ordem, erro = executarExpressao(tokens)
+            if erro:
+                print(f"Linha inválida!")
+            else:
+                for key, value in ordem.items():
+                    #print(gerarAssembly(ordem))
+                    print(key, value)
+
