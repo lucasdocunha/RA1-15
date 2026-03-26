@@ -1,0 +1,22 @@
+.data
+a:  .double 3.0
+b:  .double 4.0
+
+.text
+.global _start
+
+_start:
+    LDR R0, =a
+    VLDR.F64 D0, [R0]
+
+    LDR R1, =b
+    VLDR.F64 D1, [R1]
+
+    VADD.F64 D2, D0, D1   @ D2 = 7.0
+
+    VMOV R2, R3, D2       @ guarda resultado (melhor não sobrescrever R0/R1)
+
+stop:
+    B stop
+
+    

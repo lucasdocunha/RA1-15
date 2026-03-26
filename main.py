@@ -173,10 +173,10 @@ def lerArquivo(arquivo:str):
         
 def gerarAssembly(tokens):    
     
-    codigo_final = []
+    codigo_final, data = [], []
     codigo_final.append(".global _start")
     codigo_final.append("_start:")
-    
+        
     operadores = {
         '+': "VADD.F64",
         '-': "VSUB.F64",
@@ -184,15 +184,51 @@ def gerarAssembly(tokens):
         "/": "VDIV.F64"
     }
     
-    
-    for exp, data in tokens.items():
-        
-        operando_a, operando_b, operador = data[0], data[1], data[2]
-        
+    n_const = 0
+    for exp, dados in tokens.items():
+        if len(dados) == 2:
+            operando_a = dados[0]
+            operando_b = None
+            operador = dados[1]
+        else:
+            operando_a, operando_b, operador = dados[0], dados[1], dados[2]
+            
+            
+        if operando_a[0] == 'NUM':
+            data, codigo_final, n_const = atribuir_valor(operando_a, n_const, data, codigo_final)
+            
+        if operando_b:
+            if operando_b[0] == 'NUM':
+                data, codigo_final, n_const = atribuir_valor(operando_b, n_const, data, codigo_final)
+
+        if operador[1] == '+':
+            codigo_final.append(calcular_expressao(operadores[operador[1]],f'D{n_const}', f'D{n_const-1}', f'D{n_const-2}'))
+            codigo_final.append('VMOV R2, R3, D2')
+            
         #ir fazendo um para cada agora 
         #tem que ver como faz as labels tbm
-            
-    return "".join(codigo_final)
+    
+    
+    codigo_final.append("_end:")
+    codigo_final.append("B _end")
+    final = []
+    final.append(".data")
+    final.extend(data)
+    final.append(".text")
+    final.extend(codigo_final)
+    
+    return "\n".join(final)
+        
+def atribuir_valor(operando, n_const, data, codigo_final):
+    data.append(f'const_{n_const}: .double {operando[1]}')
+    codigo_final.append(f'LDR R{n_const}, =const_{n_const}')
+    codigo_final.append(f'VLDR.F64 D{n_const}, [R{n_const}]')
+    n_const += 1
+    
+    return data, codigo_final, n_const
+        
+def calcular_expressao(operacao, var, v1, v2):
+    return f"{operacao} {var}, {v1}, {v2}"
         
 #D0 é a base D1 é o expoente
 def calcular_potenciacao(expressao):
@@ -243,6 +279,5 @@ if __name__ == ("__main__"):
                 print(f"Linha inválida!")
             else:
                 for key, value in ordem.items():
-                    #print(gerarAssembly(ordem))
-                    print(key, value)
+                    print(gerarAssembly(ordem))
 
