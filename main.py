@@ -184,30 +184,52 @@ def gerarAssembly(tokens):
         "/": "VDIV.F64"
     }
     
+    #dicionário das expressões já resolvidas
+    exp_result = {}
     n_const = 0
     for exp, dados in tokens.items():
+        #é uma expressão já resolvida
         if len(dados) == 2:
             operando_a = dados[0]
             operando_b = None
             operador = dados[1]
         else:
-            operando_a, operando_b, operador = dados[0], dados[1], dados[2]
-            
-            
+            #expressão não resolvida
+            operando_a, operando_b, operador = dados
+
         if operando_a[0] == 'NUM':
-            data, codigo_final, n_const = atribuir_valor(operando_a, n_const, data, codigo_final)
-            
+            data, codigo_final, n_const = atribuir_valor(
+                operando_a, n_const, data, codigo_final
+            )
+            op1 = f'D{n_const-1}'
+        else:
+            #pega o resultado da exp resolvida
+            op1 = exp_result[operando_a[1]]
+
         if operando_b:
             if operando_b[0] == 'NUM':
-                data, codigo_final, n_const = atribuir_valor(operando_b, n_const, data, codigo_final)
+                data, codigo_final, n_const = atribuir_valor(
+                    operando_b, n_const, data, codigo_final
+                )
+                op2 = f'D{n_const-1}'
+            else:
+                #pega o resultado da exp resolvida
+                op2 = exp_result[operando_b[1]]
 
-        if operador[1] == '+':
-            codigo_final.append(calcular_expressao(operadores[operador[1]],f'D{n_const}', f'D{n_const-1}', f'D{n_const-2}'))
-            codigo_final.append('VMOV R2, R3, D2')
+        # operação
+        if operador[0] == 'OP':
+            dest = f'D{n_const}'
             
-        #ir fazendo um para cada agora 
-        #tem que ver como faz as labels tbm
-    
+            codigo_final.append( #pega exatamente qual é a operação e calcula, retornando a linha 
+                calcular_expressao(operadores[operador[1]], dest, op1, op2)
+            )
+
+            exp_result[exp] = dest
+            n_const += 1
+            
+    #passo para o registrador final
+    final_reg = list(exp_result.values())[-1]
+    codigo_final.append(f'VMOV R3, R2, {final_reg}')
     
     codigo_final.append("_end:")
     codigo_final.append("B _end")
@@ -278,6 +300,4 @@ if __name__ == ("__main__"):
             if erro:
                 print(f"Linha inválida!")
             else:
-                for key, value in ordem.items():
-                    print(gerarAssembly(ordem))
-
+                print(gerarAssembly(ordem))
