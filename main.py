@@ -182,7 +182,9 @@ def gerarAssembly(tokens):
         '-': "VSUB.F64",
         "*": "VMUL.F64",
         "/": "VDIV.F64",
-        '^': "^"
+        '^': "^",
+        '%': "%",
+        '//': "//"
     }
     
     #dicionário das expressões já resolvidas
@@ -221,12 +223,6 @@ def gerarAssembly(tokens):
         if operador[0] == 'OP':
             dest = f'D{n_const}'
             
-
-            if operador[1] == "//":
-                continue
-            if operador[1] == "%":
-                continue
-            
             codigo_final.append( #pega exatamente qual é a operação e calcula, retornando a linha 
                 calcular_expressao(operadores[operador[1]], dest, op1, op2, n_const)
             )
@@ -260,7 +256,13 @@ def calcular_expressao(operacao, var, v1, v2, n_const):
     
     if operacao == "^":
         return potencia(n_const, v1, v2, var)
+
+    if operacao == "%":
+        return resto(v1, v2, var)
     
+    if operacao == "//":
+        return divisao_inteira(v1, v2, var)
+
     return f"{operacao} {var}, {v1}, {v2}"
         
         
@@ -286,7 +288,22 @@ def potencia(n_const, op1, op2, dest):
 
         {label_end}:
     """
-    
+
+def resto(op1, op2, dest):
+    return f"""
+        VDIV.F64 {dest}, {op1}, {op2}
+        VCVT.F32.S64 {dest}, {dest}
+        VCVT.F64.S32 {dest}, {dest}
+        VMUL.F64 {dest}, {dest}, {op2}
+        VSUB.F64 {dest}, {op1}, {dest}
+    """
+
+def divisao_inteira(op1, op2, dest):
+    return f"""
+        VDIV.F64 {dest}, {op1}, {op2}
+        VCVT.F32.S64 {dest}, {dest}
+        VCVT.F64.S32 {dest}, {dest}
+    """
     
 def exibirResultados(resultados):
     pass
