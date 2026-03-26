@@ -2,6 +2,16 @@
 # Tiago de Brito Follador - TiagoFollador
 # Grupo 15  
 
+variaveis = {}
+
+# salvar/pegar variaveis globais
+def salvarOuPegarVariavel(nome, valor):
+    if nome in variaveis:
+        return ['NUM', variaveis[nome]]
+    else:
+        variaveis[nome] = valor
+        return ['NUM', valor]
+
 #validadores de formato:
 def digito(z):
     if z >= '0' and z <= '9':
@@ -60,7 +70,8 @@ def estadoComandoEspeciais(entrada, i):
             break
     
     #CE -> Comando especial
-    return ("CE", palavra), i, erro
+    #VAR -> Variável
+    return (("CE", palavra) if palavra == "RES" else ("VAR", palavra)), i, erro
             
 def estadoOperador(entrada, i):
     erro = False
@@ -191,11 +202,21 @@ def gerarAssembly(tokens):
     exp_result = {}
     n_const = 0
     for exp, dados in tokens.items():
+        eh_variavel = False
+        print(f"Gerando código para {exp} com dados {dados}")
         #é uma expressão já resolvida
         if len(dados) == 2:
-            operando_a = dados[0]
-            operando_b = None
-            operador = dados[1]
+            if dados[0][0] == 'VAR' and dados[1][0] == 'NUM':
+                salvarOuPegarVariavel(dados[0][1], dados[1][1])
+                return
+            elif dados[0][0] == 'NUM' and dados[1][0] == 'VAR':
+                salvarOuPegarVariavel(dados[1][1], dados[0][1])
+                return
+
+            else:
+                operando_a = dados[0]
+                operando_b = None
+                operador = dados[1]
         else:
             #expressão não resolvida
             operando_a, operando_b, operador = dados
@@ -203,6 +224,12 @@ def gerarAssembly(tokens):
         if operando_a[0] == 'NUM':
             data, codigo_final, n_const = atribuir_valor(
                 operando_a, n_const, data, codigo_final
+            )
+            op1 = f'D{n_const-1}'
+        elif operando_a[0] == 'VAR':
+            value = salvarOuPegarVariavel(operando_a[1], None)
+            data, codigo_final, n_const = atribuir_valor(
+                value, n_const, data, codigo_final
             )
             op1 = f'D{n_const-1}'
         else:
@@ -213,6 +240,12 @@ def gerarAssembly(tokens):
             if operando_b[0] == 'NUM':
                 data, codigo_final, n_const = atribuir_valor(
                     operando_b, n_const, data, codigo_final
+                )
+                op2 = f'D{n_const-1}'
+            elif operando_b[0] == 'VAR':
+                value = salvarOuPegarVariavel(operando_b[1], None)
+                data, codigo_final, n_const = atribuir_valor(
+                    value, n_const, data, codigo_final
                 )
                 op2 = f'D{n_const-1}'
             else:
@@ -231,6 +264,8 @@ def gerarAssembly(tokens):
             n_const += 1
             
     #passo para o registrador final
+    print(len(list(exp_result.values())))
+    print(exp_result)
     final_reg = list(exp_result.values())[-1]
     codigo_final.append(f'VMOV R3, R2, {final_reg}')
     
