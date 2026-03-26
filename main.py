@@ -12,6 +12,7 @@ def salvarOuPegarVariavel(nome, valor):
         variaveis[nome] = valor
         return ['NUM', valor]
 
+
 #validadores de formato:
 def digito(z):
     if z >= '0' and z <= '9':
@@ -202,8 +203,6 @@ def gerarAssembly(tokens):
     exp_result = {}
     n_const = 0
     for exp, dados in tokens.items():
-        eh_variavel = False
-        print(f"Gerando código para {exp} com dados {dados}")
         #é uma expressão já resolvida
         if len(dados) == 2:
             if dados[0][0] == 'VAR' and dados[1][0] == 'NUM':
@@ -264,8 +263,6 @@ def gerarAssembly(tokens):
             n_const += 1
             
     #passo para o registrador final
-    print(len(list(exp_result.values())))
-    print(exp_result)
     final_reg = list(exp_result.values())[-1]
     codigo_final.append(f'VMOV R3, R2, {final_reg}')
     
