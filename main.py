@@ -57,11 +57,10 @@ def estadoComandoEspeciais(entrada, i):
             palavra += entrada[i]
             i += 1 
         else: 
-            erro = True
             break
     
     #CE -> Comando especial
-    return ("CE", palavra), i + 3, erro
+    return ("CE", palavra), i, erro
             
 def estadoOperador(entrada, i):
     erro = False
