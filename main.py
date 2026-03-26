@@ -181,7 +181,8 @@ def gerarAssembly(tokens):
         '+': "VADD.F64",
         '-': "VSUB.F64",
         "*": "VMUL.F64",
-        "/": "VDIV.F64"
+        "/": "VDIV.F64",
+        '^': "^"
     }
     
     #dicionário das expressões já resolvidas
@@ -221,7 +222,7 @@ def gerarAssembly(tokens):
             dest = f'D{n_const}'
             
             codigo_final.append( #pega exatamente qual é a operação e calcula, retornando a linha 
-                calcular_expressao(operadores[operador[1]], dest, op1, op2)
+                calcular_expressao(operadores[operador[1]], dest, op1, op2, n_const)
             )
 
             exp_result[exp] = dest
@@ -249,26 +250,35 @@ def atribuir_valor(operando, n_const, data, codigo_final):
     
     return data, codigo_final, n_const
         
-def calcular_expressao(operacao, var, v1, v2):
+def calcular_expressao(operacao, var, v1, v2, n_const):
+    
+    if operacao == "^":
+        return potencia(n_const, v1, v2, var)
+    
     return f"{operacao} {var}, {v1}, {v2}"
         
-#D0 é a base D1 é o expoente
-def calcular_potenciacao(expressao):
+        
+#TODO: Arrumar aqui -> não está fazendo de fato a potencia 
+# preciso que seja para números reais tbm
+def potencia(n_const, op1, op2, dest):
+    label_loop = f"pow_loop_{n_const}"
+    label_end  = f"pow_end_{n_const}"
+
     return f"""
-    @ potenciacao {expressao}
-        VCVT.S32.F64 S1, D1
-        VMOV R1, S1
-        LDR R0, =const_1_0
-        VLDR D2, [R0]
-        
-    pow_loop_{expressao}:
-        CMP R1, #0
-        BLE pow_end_{expressao}
-        VMUL.F64 D2, D2, D0
-        SUB R1, R1, #1
-        B pow_loop_{expressao}
-        
-    pow_end_{expressao}:
+        VCVT.S32.F64 S0, {op2} 
+        VMOV R0, S0
+
+        VMOV.F64 {dest}, =one
+
+        {label_loop}:
+        CMP R0, #0
+        BEQ {label_end}
+
+        VMUL.F64 {dest}, {dest}, {op1}
+        SUB R0, R0, #1
+        B {label_loop}
+
+        {label_end}:
     """
     
     
