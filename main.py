@@ -220,6 +220,12 @@ def gerarAssembly(tokens):
         if operador[0] == 'OP':
             dest = f'D{n_const}'
             
+
+            if operador[1] == "//":
+                continue
+            if operador[1] == "%":
+                continue
+            
             codigo_final.append( #pega exatamente qual é a operação e calcula, retornando a linha 
                 calcular_expressao(operadores[operador[1]], dest, op1, op2)
             )
