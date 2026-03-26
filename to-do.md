@@ -36,7 +36,7 @@
 **Tarefas Específicas:**
 * Usar uma pilha para avaliar expressões RPN (ex.: em C++: `std::stack<float>`);✅
 * Implementar operações (`+`, `-`, `*`, `/`, `//`, `%`, `^`) com precisão de 64 bits (IEEE 754);
-* Tratar divisão inteira e resto separadamente.
+* Tratar divisão inteira e resto separadamente.✅
 
 **Interface:**
 * Recebe tokens de `parseExpressao` e atualiza resultados e memoria;

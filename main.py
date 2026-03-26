@@ -2,6 +2,17 @@
 # Tiago de Brito Follador - TiagoFollador
 # Grupo 15  
 
+variaveis = {}
+
+# salvar/pegar variaveis globais
+def salvarOuPegarVariavel(nome, valor):
+    if nome in variaveis:
+        return ['NUM', variaveis[nome]]
+    else:
+        variaveis[nome] = valor
+        return ['NUM', valor]
+
+
 #validadores de formato:
 def digito(z):
     if z >= '0' and z <= '9':
@@ -60,7 +71,8 @@ def estadoComandoEspeciais(entrada, i):
             break
     
     #CE -> Comando especial
-    return ("CE", palavra), i, erro
+    #VAR -> Variável
+    return (("CE", palavra) if palavra == "RES" else ("VAR", palavra)), i, erro
             
 def estadoOperador(entrada, i):
     erro = False
@@ -182,7 +194,9 @@ def gerarAssembly(tokens):
         '-': "VSUB.F64",
         "*": "VMUL.F64",
         "/": "VDIV.F64",
-        '^': "^"
+        '^': "^",
+        '%': "%",
+        '//': "//"
     }
     
     #dicionário das expressões já resolvidas
@@ -191,9 +205,17 @@ def gerarAssembly(tokens):
     for exp, dados in tokens.items():
         #é uma expressão já resolvida
         if len(dados) == 2:
-            operando_a = dados[0]
-            operando_b = None
-            operador = dados[1]
+            if dados[0][0] == 'VAR' and dados[1][0] == 'NUM':
+                salvarOuPegarVariavel(dados[0][1], dados[1][1])
+                return
+            elif dados[0][0] == 'NUM' and dados[1][0] == 'VAR':
+                salvarOuPegarVariavel(dados[1][1], dados[0][1])
+                return
+
+            else:
+                operando_a = dados[0]
+                operando_b = None
+                operador = dados[1]
         else:
             #expressão não resolvida
             operando_a, operando_b, operador = dados
@@ -201,6 +223,12 @@ def gerarAssembly(tokens):
         if operando_a[0] == 'NUM':
             data, codigo_final, n_const = atribuir_valor(
                 operando_a, n_const, data, codigo_final
+            )
+            op1 = f'D{n_const-1}'
+        elif operando_a[0] == 'VAR':
+            value = salvarOuPegarVariavel(operando_a[1], None)
+            data, codigo_final, n_const = atribuir_valor(
+                value, n_const, data, codigo_final
             )
             op1 = f'D{n_const-1}'
         else:
@@ -211,6 +239,12 @@ def gerarAssembly(tokens):
             if operando_b[0] == 'NUM':
                 data, codigo_final, n_const = atribuir_valor(
                     operando_b, n_const, data, codigo_final
+                )
+                op2 = f'D{n_const-1}'
+            elif operando_b[0] == 'VAR':
+                value = salvarOuPegarVariavel(operando_b[1], None)
+                data, codigo_final, n_const = atribuir_valor(
+                    value, n_const, data, codigo_final
                 )
                 op2 = f'D{n_const-1}'
             else:
@@ -254,7 +288,13 @@ def calcular_expressao(operacao, var, v1, v2, n_const):
     
     if operacao == "^":
         return potencia(n_const, v1, v2, var)
+
+    if operacao == "%":
+        return resto(v1, v2, var)
     
+    if operacao == "//":
+        return divisao_inteira(v1, v2, var)
+
     return f"{operacao} {var}, {v1}, {v2}"
         
         
@@ -280,7 +320,22 @@ def potencia(n_const, op1, op2, dest):
 
         {label_end}:
     """
-    
+
+def resto(op1, op2, dest):
+    return f"""
+        VDIV.F64 {dest}, {op1}, {op2}
+        VCVT.F32.S64 {dest}, {dest}
+        VCVT.F64.S32 {dest}, {dest}
+        VMUL.F64 {dest}, {dest}, {op2}
+        VSUB.F64 {dest}, {op1}, {dest}
+    """
+
+def divisao_inteira(op1, op2, dest):
+    return f"""
+        VDIV.F64 {dest}, {op1}, {op2}
+        VCVT.F32.S64 {dest}, {dest}
+        VCVT.F64.S32 {dest}, {dest}
+    """
     
 def exibirResultados(resultados):
     pass
