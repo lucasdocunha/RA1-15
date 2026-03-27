@@ -2,6 +2,9 @@
 # Tiago de Brito Follador - TiagoFollador
 # Grupo 15  
 
+#TODO: fazer a parte dos testes -> principalmente da 2
+
+
 variaveis = {}
 
 # salvar/pegar variaveis globais
@@ -293,7 +296,8 @@ def calcular_expressao(operacao, var, v1, v2, n_const):
     
     if operacao == "^":
         return potencia(n_const, v1, v2, var)
-
+    
+    #TODO: está dando erro
     if operacao == "%":
         return resto(v1, v2, var)
     
@@ -304,7 +308,7 @@ def calcular_expressao(operacao, var, v1, v2, n_const):
         
         
 #TODO: Arrumar aqui -> não está fazendo de fato a potencia 
-# preciso que seja para números reais tbm
+#TODO: A potencia está em loop eterno 
 def potencia(n_const, op1, op2, dest):
     label_loop = f"pow_loop_{n_const}"
     label_end  = f"pow_end_{n_const}"
@@ -345,17 +349,6 @@ def divisao_inteira(op1, op2, dest):
 def exibirResultados(resultados):
     pass
 
-
-def casa_decimal_led():
-    return"""
-        LDR R0, =0xFF200020   
-
-        MOV R1, #0x08         @ segmento D (parte de baixo)
-        LSL R1, R1, #8        @ mover para HEX1
-
-        STR R1, [R0]
-        """
-
 def digitos_display():
     return"""digits:
     .word 0x3F @ 0
@@ -370,7 +363,7 @@ def digitos_display():
     .word 0x6F @ 9
     """
     
-
+#TODO: deixar o código truncar ao invés de ele arredondar 
 def mover_numeros_para_display(n_const, d_reg):
     return f"""
     @ =========================
@@ -388,6 +381,7 @@ def mover_numeros_para_display(n_const, d_reg):
     LDR R0, =dez
     VLDR.F64 D12, [R0]
     VMUL.F64 D11, D11, D12
+
 
     VCVT.S32.F64 S11, D11
     VMOV R{n_const+1}, S11
