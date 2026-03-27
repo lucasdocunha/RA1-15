@@ -183,7 +183,7 @@ def lerArquivo(arquivo:str):
     except Exception as e:
         print(f"Não foi possível abrir o arquivo {arquivo} - erro: {e}")
         
-def gerarAssembly(tokens):    
+def gerarAssembly(expressao):    
     
     codigo_final, data = [], []
     codigo_final.append(".global _start")
@@ -198,74 +198,77 @@ def gerarAssembly(tokens):
         '%': "%",
         '//': "//"
     }
-    
-    #dicionário das expressões já resolvidas
-    exp_result = {}
     n_const = 0
-    for exp, dados in tokens.items():
-        #é uma expressão já resolvida
-        if len(dados) == 2:
-            if dados[0][0] == 'VAR' and dados[1][0] == 'NUM':
-                salvarOuPegarVariavel(dados[0][1], dados[1][1])
-                return
-            elif dados[0][0] == 'NUM' and dados[1][0] == 'VAR':
-                salvarOuPegarVariavel(dados[1][1], dados[0][1])
-                return
+    for tokens in expressao:
+        #dicionário das expressões já resolvidas
+        exp_result = {}
+        for exp, dados in tokens.items():
+            #é uma expressão já resolvida
+            eh_variavel = False
+            if len(dados) == 2:
+                if dados[0][0] == 'VAR' and dados[1][0] == 'NUM':
+                    salvarOuPegarVariavel(dados[0][1], dados[1][1])
+                    eh_variavel = True
+                elif dados[0][0] == 'NUM' and dados[1][0] == 'VAR':
+                    salvarOuPegarVariavel(dados[1][1], dados[0][1])
+                    eh_variavel = True
 
+                else:
+                    operando_a = dados[0]
+                    operando_b = None
+                    operador = dados[1]
             else:
-                operando_a = dados[0]
-                operando_b = None
-                operador = dados[1]
-        else:
-            #expressão não resolvida
-            operando_a, operando_b, operador = dados
-
-        if operando_a[0] == 'NUM':
-            data, codigo_final, n_const = atribuir_valor(
-                operando_a, n_const, data, codigo_final
-            )
-            op1 = f'D{n_const-1}'
-        elif operando_a[0] == 'VAR':
-            value = salvarOuPegarVariavel(operando_a[1], None)
-            data, codigo_final, n_const = atribuir_valor(
-                value, n_const, data, codigo_final
-            )
-            op1 = f'D{n_const-1}'
-        else:
-            #pega o resultado da exp resolvida
-            op1 = exp_result[operando_a[1]]
-
-        if operando_b:
-            if operando_b[0] == 'NUM':
-                data, codigo_final, n_const = atribuir_valor(
-                    operando_b, n_const, data, codigo_final
-                )
-                op2 = f'D{n_const-1}'
-            elif operando_b[0] == 'VAR':
-                value = salvarOuPegarVariavel(operando_b[1], None)
-                data, codigo_final, n_const = atribuir_valor(
-                    value, n_const, data, codigo_final
-                )
-                op2 = f'D{n_const-1}'
-            else:
-                #pega o resultado da exp resolvida
-                op2 = exp_result[operando_b[1]]
-
-        # operação
-        if operador[0] == 'OP':
-            dest = f'D{n_const}'
+                #expressão não resolvida
+                operando_a, operando_b, operador = dados
             
-            codigo_final.append( #pega exatamente qual é a operação e calcula, retornando a linha 
-                calcular_expressao(operadores[operador[1]], dest, op1, op2, n_const)
-            )
+            if not eh_variavel:
+                if operando_a[0] == 'NUM':
+                    data, codigo_final, n_const = atribuir_valor(
+                        operando_a, n_const, data, codigo_final
+                    )
+                    op1 = f'D{n_const-1}'
+                elif operando_a[0] == 'VAR':
+                    value = salvarOuPegarVariavel(operando_a[1], None)
+                    data, codigo_final, n_const = atribuir_valor(
+                        value, n_const, data, codigo_final
+                    )
+                    op1 = f'D{n_const-1}'
+                else:
+                    #pega o resultado da exp resolvida
+                    op1 = exp_result[operando_a[1]]
 
-            exp_result[exp] = dest
-            n_const += 1
-            
-    #passo para o registrador final
-    final_reg = list(exp_result.values())[-1]
-    codigo_final.append(f'VMOV R3, R2, {final_reg}')
-    
+                if operando_b:
+                    if operando_b[0] == 'NUM':
+                        data, codigo_final, n_const = atribuir_valor(
+                            operando_b, n_const, data, codigo_final
+                        )
+                        op2 = f'D{n_const-1}'
+                    elif operando_b[0] == 'VAR':
+                        value = salvarOuPegarVariavel(operando_b[1], None)
+                        data, codigo_final, n_const = atribuir_valor(
+                            value, n_const, data, codigo_final
+                        )
+                        op2 = f'D{n_const-1}'
+                    else:
+                        #pega o resultado da exp resolvida
+                        op2 = exp_result[operando_b[1]]
+
+                # operação
+                if operador[0] == 'OP':
+                    dest = f'D{n_const}'
+                    
+                    codigo_final.append( #pega exatamente qual é a operação e calcula, retornando a linha 
+                        calcular_expressao(operadores[operador[1]], dest, op1, op2, n_const)
+                    )
+
+                    exp_result[exp] = dest
+                    n_const += 1
+                    
+        #passo para o registrador final
+        print(exp_result.values())
+        final_reg = list(exp_result.values())[-1] if len(exp_result) > 0 else ''
+        codigo_final.append(f'VMOV R3, R2, {final_reg}')
+        
     codigo_final.append("_end:")
     codigo_final.append("B _end")
     final = []
@@ -353,6 +356,7 @@ if __name__ == ("__main__"):
     
     linhas = lerArquivo(arquivo)
 
+    wagner = []
         
     for idx, linha in enumerate(linhas):
         tokens, erro = parseExpressao(linha)
@@ -365,4 +369,9 @@ if __name__ == ("__main__"):
             if erro:
                 print(f"Linha inválida!")
             else:
-                print(gerarAssembly(ordem))
+                print(f"Ordem de execução: {ordem}")
+                wagner.append(ordem)
+    print("\nExpressões processadas:")
+    print(wagner)
+    codigo_assembly = gerarAssembly(wagner)
+    print(codigo_assembly)
