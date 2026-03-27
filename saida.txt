@@ -1,0 +1,106 @@
+digitos:
+    .word 0x3F @ 0
+    .word 0x06 @ 1
+    .word 0x5B @ 2
+    .word 0x4F @ 3
+    .word 0x66 @ 4
+    .word 0x6D @ 5
+    .word 0x7D @ 6
+    .word 0x07 @ 7
+    .word 0x7F @ 8
+    .word 0x6F @ 9
+    
+.data
+dez: .double 10.0
+um: .double 1.0
+const_0: .double 10
+const_1: .double None
+.text
+.global _start
+_start:
+LDR R0, =const_0
+VLDR.F64 D0, [R0]
+LDR R1, =const_1
+VLDR.F64 D1, [R1]
+VADD.F64 D2, D0, D1
+VMOV R3, R2, D2
+
+    @ =========================
+    @ inteiro
+    @ =========================
+    VCVT.S32.F64 S10, D2
+    VMOV R3, S10
+
+    @ =========================
+    @ decimal
+    @ =========================
+    VCVT.F64.S32 D10, S10
+    VSUB.F64 D11, D2, D10
+    
+    LDR R0, =dez
+    VLDR.F64 D12, [R0]
+    VMUL.F64 D11, D11, D12
+
+
+    VCVT.S32.F64 S11, D11
+    VMOV R4, S11
+
+    CMP R4, #0
+    BGE check_max
+    MOV R4, #0
+
+    check_max:
+    CMP R4, #9
+    BLE ok_decimal
+    MOV R4, #9
+
+    ok_decimal:
+
+    @ =========================
+    @ separar dígitos
+    @ =========================
+    MOV R5, #0
+    MOV R6, #0
+    MOV R7, R3
+    
+cent_loop:
+    CMP R7, #100
+    BLT dez_loop
+    SUB R7, R7, #100
+    ADD R5, R5, #1
+    B cent_loop
+
+dez_loop:
+    CMP R7, #10
+    BLT final_digitos
+    SUB R7, R7, #10
+    ADD R6, R6, #1
+    B dez_loop
+        
+final_digitos:
+    LDR R8, =digitos
+
+    LDR R9, [R8, R5, LSL #2]
+    LDR R10, [R8, R6, LSL #2]
+    LDR R11, [R8, R7, LSL #2]
+    LDR R12, [R8, R4, LSL #2]
+
+    LDR R2, =0xFF200020
+    MOV R3, #0
+
+    ORR R3, R3, R12          @ HEX0
+    MOV R1, #0x08
+    ORR R3, R3, R1, LSL #8            @ "_"
+    ORR R3, R3, R11, LSL #16 @ HEX2
+    ORR R3, R3, R10, LSL #24 @ HEX3
+
+    STR R3, [R2]
+
+    LDR R2, =0xFF200030
+    MOV R3, #0
+    ORR R3, R3, R9          @ HEX4
+
+    STR R3, [R2]
+    
+_end:
+B _end
