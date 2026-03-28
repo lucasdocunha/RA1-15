@@ -11,8 +11,7 @@ MAX_D = 16
 def regD(indice: int):
     return f'D{indice % (MAX_D)}'
 
-# salvar/pegar variaveis globais
-# atua a nivel de token
+# Salvar/pegar variáveis globais; atua ao nível de token.
 def salvarOuPegarVariavel(nome, valor):
     if valor is not None:
         variaveis[nome] = valor
@@ -50,7 +49,7 @@ def parenteses(z):
         return True
     return False
 
-#estados:
+# Estados do AFD
 def estadoNumero(entrada, i):
     numero = ""
     real = False
@@ -74,7 +73,7 @@ def estadoNumero(entrada, i):
         
         i = i + 1      
     
-    #numero não pode ser só ., não pode começar ou terminar com .
+    # Número inválido: só ".", começa ou termina com "."
     if numero == "." or numero[0] == "." or numero[-1] == ".":
         erro = True
     
@@ -99,7 +98,8 @@ def estadoOperador(entrada, i):
     erro = False
     if operacoes(entrada[i]):
         if operacoes(entrada[i:i+2]):
-            return ("OP", entrada[i:i+2]), i+2, erro #verificação do //
+            # Verificação do //
+            return ("OP", entrada[i:i+2]), i+2, erro
         return ("OP", entrada[i]), i + 1, erro
 
 def estadoParenteses(entrada, i):
@@ -107,10 +107,10 @@ def estadoParenteses(entrada, i):
     erro = False
     if parenteses(p):
         if p == "(":
-            #PI -> parenteses inicial
+            # PI: parêntese inicial
             return ("PI", p), i + 1, erro
         else:
-            #PF -> parenteses final
+            # PF: parêntese final
             return ("PF", p), i + 1, erro
 
 def parseExpressao(linha) -> list[str]:
@@ -170,7 +170,7 @@ def validarSubexpressao(expr, linha_idx):
     if n == 2:
         t0, t1 = expr[0], expr[1]
         
-        #valido se é RES
+        # (N RES)
         if t1[0] == "CE" and t1[1] == "RES":
             #o primeiro token deve ser um número
             if t0[0] != "NUM":
@@ -186,7 +186,7 @@ def validarSubexpressao(expr, linha_idx):
                 return False
 
             n_linhas = int(n_val)
-            # resultado da expressão N linhas anteriores: precisa haver linha alvo
+            # Tem de existir linha alvo (N linhas acima)
             if n_linhas < 1:
                 return False
 
@@ -304,7 +304,7 @@ def gerarAssembly(expressao):
         codigo_final.append(f"RES_LINHA_{linhas}: .double 0.0")
 
         for exp, dados in tokens.items():
-            #é uma expressão já resolvida
+            # Bloco já fechado (leitura de VAR, atribuição, RES, etc.)
             eh_variavel = False
 
             if len(dados) == 1 and dados[0][0] == 'VAR':
@@ -369,7 +369,7 @@ def gerarAssembly(expressao):
                     operando_b = None
                     operador = dados[1]
             else:
-                # expressão não resolvida
+                # Operação binária (A B op)
                 operando_a, operando_b, operador = dados
             
             if not eh_variavel:
@@ -386,7 +386,7 @@ def gerarAssembly(expressao):
                     op1 = regD(n_const)
                     n_const += 1
                 else:
-                    #pega o resultado da exp resolvida
+                    # Operando = subexpressão já gerada
                     op1 = exp_result[operando_a[1]]
 
                 if operando_b:
@@ -403,7 +403,6 @@ def gerarAssembly(expressao):
                         op2 = regD(n_const)
                         n_const += 1
                     else:
-                        #pega o resultado da exp resolvida
                         op2 = exp_result[operando_b[1]]
 
                 # operação
@@ -417,15 +416,14 @@ def gerarAssembly(expressao):
                     exp_result[exp] = dest
                     n_const += 1
 
-        # passo para o registrador final
+        # Guarda resultado da linha em RES_LINHA_*
         final_reg = list(exp_result.values())[-1] if len(exp_result) > 0 else ''
         codigo_final.append(f'VMOV R3, R2, {final_reg}')
         codigo_final.append(f'LDR R4, =RES_LINHA_{linhas}')
         codigo_final.append(f'VSTR.F64 {final_reg}, [R4]')
         salvarHistorico(f"RES_LINHA_{linhas}")
-        
-            
-    #passo para o registrador final
+
+    # Última linha: valor final -> display
     final_reg = list(exp_result.values())[-1]
     codigo_final.append(f'VMOV R3, R2, {final_reg}')
     codigo_final.append(mover_numeros_para_display(final_reg))
@@ -474,6 +472,7 @@ def potencia(n_const, op1, op2, dest):
     label_end  = f"pow_end_{n_const}"
 
     return f"""
+        @ potência (^), expoente inteiro em R0
         VCVT.S32.F64 S0, {op2} 
         VMOV R0, S0
 
@@ -494,36 +493,23 @@ def potencia(n_const, op1, op2, dest):
 
 def resto(op1, op2, dest):
     return f"""
-        @ quociente em double
+        @ resto (%)
         VDIV.F64 D10, {op1}, {op2}
-
-        @ parte inteira do quociente
         VCVT.S32.F64 S10, D10
-
-        @ volta pra double
         VCVT.F64.S32 D11, S10
-
-        @ multiplica pelo divisor
         VMUL.F64 D11, D11, {op2}
-
-        @ resto = op1 - (quociente * op2)
         VSUB.F64 {dest}, {op1}, D11
     """
 
 def divisao_inteira(op1, op2, dest):
     return f"""
+        @ divisão inteira (//)
         VDIV.F64 {dest}, {op1}, {op2}
         VCVT.S32.F64 S0, {dest}
         VCVT.F64.S32 {dest}, S0
     """
     
 def exibirResultados(resultados):
-    """
-    Exibe um resumo por linha do ficheiro.
-    resultados: lista de (num_linha, ordem | None, estado)
-      estado: "ok" | "erro_lexico" | "erro_estrutura" | "vazio" | "vazio_arquivo"
-    Em erro (léxico ou estrutura), a coluna blocos mostra ERRO.
-    """
     print("\n" + "=" * 60)
     print("RESULTADOS")
     print("=" * 60)
@@ -557,6 +543,7 @@ def exibirResultados(resultados):
 
 def digitos_display():
     return"""digitos:
+    @ padrões 7 seg, índice 0..9
     .word 0x3F @ 0
     .word 0x06 @ 1
     .word 0x5B @ 2
@@ -570,19 +557,9 @@ def digitos_display():
     """
     
 def mover_numeros_para_display(final_d_reg):
-    """
-    Registradores fixos (GPR): R0–R1 temporários, R2–R3 MMIO, R4 ponteiro (.data),
-    R6 máscara sinal, R8 inteiro |x|, R9 1ª decimal, R5 milhar, R10–R12 cent/dez/uni.
-    Copia o resultado para D14 e usa D10–D13, D15 só neste bloco.
-    Ordem física da placa (esquerda → direita): HEX5 … HEX0 = sinal+milhar | cent | dez | uni | . | dec
-    0xFF200020: HEX0..3; 0xFF200030: HEX4..5 (HEX5 = dígito do milhar OR máscara de sinal).
-    Se |x| > 9999.9, exibe ±9999.9.
-    """
     return f"""
-    @ cópia para área fixa do display (D14); literais via R4
+    @ resultado -> D14, depois HEX
     VMOV.F64 D14, {final_d_reg}
-
-    @ se |x| > 9999.9 -> copysign(9999.9, x)
     LDR R4, =fp_zero
     VLDR.F64 D15, [R4]
     MOV R1, #0
@@ -591,6 +568,7 @@ def mover_numeros_para_display(final_d_reg):
     MOVLT R1, #1
 
     VABS.F64 D13, D14
+    @ satura |x| > 9999.9
     LDR R4, =max_disp
     VLDR.F64 D16, [R4]
     VCMPE.F64 D13, D16
@@ -604,13 +582,13 @@ def mover_numeros_para_display(final_d_reg):
     VNEG.F64 D14, D14
 disp_apos_clamp:
 
-    @ === FPSCR: truncar (round toward zero) ===
+    @ FPSCR: truncar p/ inteiro
     VMRS R0, FPSCR
     BIC  R0, R0, #0x00C00000
     ORR  R0, R0, #0x00C00000
     VMSR FPSCR, R0
 
-    @ sinal (negativo < 0.0), máscara 0x40 = segmento '-'
+    @ sinal (negativo)
     LDR R4, =fp_zero
     VLDR.F64 D15, [R4]
     VCMPE.F64 D14, D15
@@ -618,13 +596,12 @@ disp_apos_clamp:
     MOV R6, #0
     MOVLT R6, #0x40
 
-    @ parte inteira da magnitude |x| (trunc RZ)
+    @ parte inteira (|x|)
     VABS.F64 D13, D14
     VCVT.S32.F64 S10, D13
     VMOV R8, S10
 
-    @ 1ª decimal: dec = trunc(|x|*10 + eps) - trunc(|x|)*10
-    @ (evita frac = |x| - int(|x|), que vira 0.3999... e 10*frac -> 3 em vez de 4)
+    @ 1ª casa decimal
     LDR R4, =dez
     VLDR.F64 D12, [R4]
     VMUL.F64 D11, D13, D12
@@ -637,7 +614,7 @@ disp_apos_clamp:
     MUL R0, R8, R1
     SUB R9, R9, R0
 
-    @ === FPSCR: volta round to nearest ===
+    @ FPSCR: arredondar
     VMRS R0, FPSCR
     BIC  R0, R0, #0x00C00000
     VMSR FPSCR, R0
@@ -650,6 +627,7 @@ disp_apos_clamp:
     MOV R5, #0
     MOV R12, R8
 
+    @ decompor milhar/cent/dez/uni
 disp_mil_loop:
     CMP R12, #1000
     BLT disp_cent_loop
@@ -677,8 +655,7 @@ disp_dez_sub:
 
 disp_seg_digitos:
     LDR R4, =digitos
-
-    @ HEX0..3: dec _ uni dez  (direita: 7 _ 6 5 em -456.7)
+    @ HEX0..3
     LDR R2, =0xFF200020
     MOV R3, #0
     LDR R0, [R4, R9, LSL #2]
@@ -690,8 +667,7 @@ disp_seg_digitos:
     LDR R0, [R4, R11, LSL #2]
     ORR R3, R3, R0, LSL #24
     STR R3, [R2]
-
-    @ HEX4..5: cent | (milhar + sinal em HEX5)
+    @ HEX4..5
     LDR R2, =0xFF200030
     MOV R3, #0
     LDR R0, [R4, R10, LSL #2]
