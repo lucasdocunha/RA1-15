@@ -236,15 +236,15 @@ def executarExpressao(tokens, linha_idx=0):
     return ordem, erro
     
 
-def lerArquivo(arquivo:str):
+def lerArquivo(nome_arquivo:str):
     try:
-        with open(arquivo, 'r') as f:
+        with open(nome_arquivo, "r", encoding="utf-8") as f:
             return f.readlines()
     except Exception as e:
-        print(f"Não foi possível abrir o arquivo {arquivo} - erro: {e}")
+        print(f"Não foi possível abrir o arquivo {nome_arquivo} - erro: {e}")
         
-def salvarArquivo(arquivo:str, conteudo):
-    with open(arquivo, 'w') as f:
+def salvarArquivo(nome_arquivo:str, conteudo):
+    with open(nome_arquivo, "w", encoding="utf-8") as f:
         f.write(conteudo)
         
 def gerarAssembly(expressao):    
@@ -568,6 +568,8 @@ disp_seg_digitos:
 
 if __name__ == ("__main__"):
     import argparse
+    import sys
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "filename", 
@@ -575,8 +577,10 @@ if __name__ == ("__main__"):
     )
     args = parser.parse_args()
     arquivo = args.filename
-    
+
     linhas = lerArquivo(arquivo)
+    if linhas is None:
+        sys.exit(1)
 
     wagner = []
         
