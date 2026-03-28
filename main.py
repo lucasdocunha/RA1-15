@@ -2,17 +2,16 @@
 # Tiago de Brito Follador - TiagoFollador
 # Grupo 15  
 
-#TODO: fazer a parte dos testes -> principalmente da 2
 #TODO: verificar se o led não está ligando errado na última casa decimal
 #TODO: tem que fazer a parte das variáveis funcionarem como no teste1 -> agr não tá indo
 
 variaveis = {}
 historico_linha = []
-MAX_D_REG = 15
+MAX_D = 16
 
 
-def reg_d(indice: int):
-    return f'D{indice % (MAX_D_REG + 1)}'
+def regD(indice: int):
+    return f'D{indice % (MAX_D)}'
 
 # salvar/pegar variaveis globais
 # atua a nivel de token
@@ -251,16 +250,29 @@ def executarExpressao(tokens, linha_idx=0):
     return ordem, erro
     
 
-def lerArquivo(arquivo:str):
+def lerArquivo(nome_arquivo:str):
     try:
-        with open(arquivo, 'r') as f:
+        with open(nome_arquivo, "r", encoding="utf-8") as f:
             return f.readlines()
     except Exception as e:
-        print(f"Não foi possível abrir o arquivo {arquivo} - erro: {e}")
+        print(f"Não foi possível abrir o arquivo {nome_arquivo} - erro: {e}")
         
-def salvarArquivo(arquivo:str, conteudo):
-    with open(arquivo, 'w') as f:
+def salvarArquivo(nome_arquivo:str, conteudo):
+    with open(nome_arquivo, "w", encoding="utf-8") as f:
         f.write(conteudo)
+
+
+def salvar_tokens_txt(linhas_tokens: list[str]) -> None:
+    """Grava só tokens.txt: uma linha por expressão — 'Linha N - …' ou 'Linha N - inválido'."""
+    salvarArquivo(
+        "tokens.txt",
+        "\n".join(linhas_tokens) + ("\n" if linhas_tokens else ""),
+    )
+
+
+def salvar_assembly_txt(conteudo: str) -> None:
+    """Grava só o assembly (arquivo separado de tokens.txt)."""
+    salvarArquivo("saida.txt", conteudo)
         
 def gerarAssembly(expressao):    
     
@@ -296,8 +308,8 @@ def gerarAssembly(expressao):
                 value = salvarOuPegarVariavel(dados[0][1], None)[1]
                 atribuirVariavel(dados[0][1], variaveis_data, data, value)
                 codigo_final.append(f'LDR R4, ={dados[0][1]}')
-                codigo_final.append(f'VLDR.F64 {reg_d(n_const)}, [R4]')
-                dest = reg_d(n_const)
+                codigo_final.append(f'VLDR.F64 {regD(n_const)}, [R4]')
+                dest = regD(n_const)
                 exp_result[exp] = dest
                 n_const += 1
                 eh_variavel = True
@@ -310,7 +322,7 @@ def gerarAssembly(expressao):
                     data, codigo_final, n_const = atribuir_valor(
                         ('NUM', dados[1][1]), n_const, data, codigo_final
                     )
-                    dest = reg_d(n_const-1)
+                    dest = regD(n_const-1)
                     codigo_final.append(f'LDR R4, ={dados[0][1]}')
                     codigo_final.append(f'VSTR.F64 {dest}, [R4]')
                     exp_result[exp] = dest
@@ -323,7 +335,7 @@ def gerarAssembly(expressao):
                     data, codigo_final, n_const = atribuir_valor(
                         ('NUM', dados[0][1]), n_const, data, codigo_final
                     )
-                    dest = reg_d(n_const-1)
+                    dest = regD(n_const-1)
                     codigo_final.append(f'LDR R4, ={dados[1][1]}')
                     codigo_final.append(f'VSTR.F64 {dest}, [R4]')
                     exp_result[exp] = dest
@@ -331,7 +343,7 @@ def gerarAssembly(expressao):
 
                 elif dados[0][0] == 'NUM' and dados[1][0] == 'CE':
                     if dados[1][1] == 'RES':
-                        dest = reg_d(n_const)
+                        dest = regD(n_const)
 
                         codigo_final.append(f'LDR R4, ={pegarHistorico(linhas)}')
                         codigo_final.append(f'VLDR.F64 {dest}, [R4]')
@@ -353,13 +365,13 @@ def gerarAssembly(expressao):
                     data, codigo_final, n_const = atribuir_valor(
                         operando_a, n_const, data, codigo_final
                     )
-                    op1 = reg_d(n_const-1)
+                    op1 = regD(n_const-1)
                 elif operando_a[0] == 'VAR':
                     value = salvarOuPegarVariavel(operando_a[1], None)[1]
                     atribuirVariavel(operando_a[1], variaveis_data, data, value)
                     codigo_final.append(f'LDR R4, ={operando_a[1]}')
-                    codigo_final.append(f'VLDR.F64 {reg_d(n_const)}, [R4]')
-                    op1 = reg_d(n_const)
+                    codigo_final.append(f'VLDR.F64 {regD(n_const)}, [R4]')
+                    op1 = regD(n_const)
                     n_const += 1
                 else:
                     #pega o resultado da exp resolvida
@@ -370,13 +382,13 @@ def gerarAssembly(expressao):
                         data, codigo_final, n_const = atribuir_valor(
                             operando_b, n_const, data, codigo_final
                         )
-                        op2 = reg_d(n_const-1)
+                        op2 = regD(n_const-1)
                     elif operando_b[0] == 'VAR':
                         value = salvarOuPegarVariavel(operando_b[1], None)[1]
                         atribuirVariavel(operando_b[1], variaveis_data, data, value)
                         codigo_final.append(f'LDR R4, ={operando_b[1]}')
-                        codigo_final.append(f'VLDR.F64 {reg_d(n_const)}, [R4]')
-                        op2 = reg_d(n_const)
+                        codigo_final.append(f'VLDR.F64 {regD(n_const)}, [R4]')
+                        op2 = regD(n_const)
                         n_const += 1
                     else:
                         #pega o resultado da exp resolvida
@@ -384,7 +396,7 @@ def gerarAssembly(expressao):
 
                 # operação
                 if operador[0] == 'OP':
-                    dest = reg_d(n_const)
+                    dest = regD(n_const)
                     
                     codigo_final.append( #pega exatamente qual é a operação e calcula, retornando a linha 
                         calcular_expressao(operadores[operador[1]], dest, op1, op2, n_const)
@@ -417,6 +429,7 @@ def gerarAssembly(expressao):
     final.append('eps_dec: .double 1e-7')
     final.append('dez: .double 10.0')
     final.append('um: .double 1.0')
+    final.append('max_disp: .double 9999.9')
     final.extend(data)
     final.append(".text")
     final.extend(codigo_final)
@@ -426,7 +439,7 @@ def gerarAssembly(expressao):
 def atribuir_valor(operando, n_const, data, codigo_final):
     data.append(f'const_{n_const}: .double {operando[1]}')
     codigo_final.append(f'LDR R4, =const_{n_const}')
-    codigo_final.append(f'VLDR.F64 {reg_d(n_const)}, [R4]')
+    codigo_final.append(f'VLDR.F64 {regD(n_const)}, [R4]')
     n_const += 1
 
     return data, codigo_final, n_const
@@ -513,14 +526,37 @@ def digitos_display():
 def mover_numeros_para_display(final_d_reg):
     """
     Registradores fixos (GPR): R0–R1 temporários, R2–R3 MMIO, R4 ponteiro (.data),
-    R6 máscara sinal, R8 inteiro |x|, R9 1ª decimal, R10–R12 cent/dez/uni.
+    R6 máscara sinal, R8 inteiro |x|, R9 1ª decimal, R5 milhar, R10–R12 cent/dez/uni.
     Copia o resultado para D14 e usa D10–D13, D15 só neste bloco.
-    Ordem física da placa (esquerda → direita): HEX5 … HEX0 = -456_7
-    (ex.: 10 → desligado 010_0). 0xFF200020: HEX0..3; 0xFF200030: HEX4..5.
+    Ordem física da placa (esquerda → direita): HEX5 … HEX0 = sinal+milhar | cent | dez | uni | . | dec
+    0xFF200020: HEX0..3; 0xFF200030: HEX4..5 (HEX5 = dígito do milhar OR máscara de sinal).
+    Se |x| > 9999.9, exibe ±9999.9.
     """
     return f"""
     @ cópia para área fixa do display (D14); literais via R4
     VMOV.F64 D14, {final_d_reg}
+
+    @ se |x| > 9999.9 -> copysign(9999.9, x)
+    LDR R4, =fp_zero
+    VLDR.F64 D15, [R4]
+    MOV R1, #0
+    VCMPE.F64 D14, D15
+    VMRS APSR_nzcv, FPSCR
+    MOVLT R1, #1
+
+    VABS.F64 D13, D14
+    LDR R4, =max_disp
+    VLDR.F64 D16, [R4]
+    VCMPE.F64 D13, D16
+    VMRS APSR_nzcv, FPSCR
+    BLE disp_apos_clamp
+
+    LDR R4, =max_disp
+    VLDR.F64 D14, [R4]
+    CMP R1, #0
+    BEQ disp_apos_clamp
+    VNEG.F64 D14, D14
+disp_apos_clamp:
 
     @ === FPSCR: truncar (round toward zero) ===
     VMRS R0, FPSCR
@@ -565,23 +601,33 @@ def mover_numeros_para_display(final_d_reg):
     CMP R9, #9
     MOVGT R9, #9
 
-    MOV R10, #0
-    MOV R11, #0
+    MOV R5, #0
     MOV R12, R8
 
+disp_mil_loop:
+    CMP R12, #1000
+    BLT disp_cent_loop
+    SUB R12, R12, #1000
+    ADD R5, R5, #1
+    B disp_mil_loop
+
 disp_cent_loop:
+    MOV R10, #0
+disp_cent_sub:
     CMP R12, #100
     BLT disp_dez_loop
     SUB R12, R12, #100
     ADD R10, R10, #1
-    B disp_cent_loop
+    B disp_cent_sub
 
 disp_dez_loop:
+    MOV R11, #0
+disp_dez_sub:
     CMP R12, #10
     BLT disp_seg_digitos
     SUB R12, R12, #10
     ADD R11, R11, #1
-    B disp_dez_loop
+    B disp_dez_sub
 
 disp_seg_digitos:
     LDR R4, =digitos
@@ -599,18 +645,22 @@ disp_seg_digitos:
     ORR R3, R3, R0, LSL #24
     STR R3, [R2]
 
-    @ HEX4..5: cent sinal  (esquerda do grupo: 4 -)
+    @ HEX4..5: cent | (milhar + sinal em HEX5)
     LDR R2, =0xFF200030
     MOV R3, #0
     LDR R0, [R4, R10, LSL #2]
     ORR R3, R3, R0
-    ORR R3, R3, R6, LSL #8
+    LDR R0, [R4, R5, LSL #2]
+    ORR R0, R0, R6
+    ORR R3, R3, R0, LSL #8
     STR R3, [R2]
     """
     
 
 if __name__ == ("__main__"):
     import argparse
+    import sys
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "filename", 
@@ -618,24 +668,40 @@ if __name__ == ("__main__"):
     )
     args = parser.parse_args()
     arquivo = args.filename
-    
-    linhas = lerArquivo(arquivo)
 
-    wagner = []
-        
+    linhas = lerArquivo(arquivo)
+    if linhas is None:
+        sys.exit(1)
+
+    lista_tokens = []
+    linhas_tokens = []
+
+    if not linhas:
+        linhas_tokens.append("Linha 1 - inválido")
+
     for idx, linha in enumerate(linhas):
         tokens, erro = parseExpressao(linha)
 
         print(f"\nLinha {idx+1}: {tokens}")
         if erro:
-            print(f"Linha inválida!")
-        else:
-            ordem, erro = executarExpressao(tokens, linha_idx=idx)
-            if erro:
-                print(f"Linha inválida!")
-            else:
-                print(f"Ordem de execução: {ordem}")
-                wagner.append(ordem)
+            print("Linha inválida! (léxico) — ignorada.")
+            linhas_tokens.append(f"Linha {idx+1} - inválido")
+            continue
+
+        ordem, erro = executarExpressao(tokens, linha_idx=idx)
+        if erro:
+            print("Linha inválida! (estrutura) — ignorada.")
+            linhas_tokens.append(f"Linha {idx+1} - inválido")
+            continue
+
+        print(f"Ordem de execução: {ordem}")
+        lista_tokens.append(ordem)
+        linhas_tokens.append(f"Linha {idx+1} - {tokens}")
     print("\nExpressões processadas:")
-    print(wagner)
-    salvarArquivo('saida.txt', gerarAssembly(wagner))
+    print(lista_tokens)
+
+    salvar_tokens_txt(linhas_tokens)
+    if not lista_tokens:
+        salvar_assembly_txt("")
+    else:
+        salvar_assembly_txt(gerarAssembly(lista_tokens))
