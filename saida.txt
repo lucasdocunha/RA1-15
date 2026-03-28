@@ -15,20 +15,10 @@ fp_zero: .double 0.0
 eps_dec: .double 1e-7
 dez: .double 10.0
 um: .double 1.0
-const_0: .double 15.5
-const_1: .double 4.5
-const_3: .double 10.0
-const_4: .double 3.0
-const_6: .double 10.0
-const_7: .double 3.0
-const_9: .double 2.0
-const_10: .double 3.0
-VARIAVEL: .double 42.5
-const_12: .double 42.5
-const_14: .double 3.0
-const_15: .double 4.0
-const_21: .double 2.5
-const_22: .double 0.0
+max_disp: .double 9999.9
+const_0: .double 2
+const_1: .double 2
+const_3: .double 3
 .text
 .global _start
 _start:
@@ -37,115 +27,39 @@ LDR R4, =const_0
 VLDR.F64 D0, [R4]
 LDR R4, =const_1
 VLDR.F64 D1, [R4]
-VADD.F64 D2, D0, D1
-VMOV R3, R2, D2
-LDR R4, =RES_LINHA_1
-VSTR.F64 D2, [R4]
-RES_LINHA_2: .double 0.0
+VMUL.F64 D2, D0, D1
 LDR R4, =const_3
 VLDR.F64 D3, [R4]
-LDR R4, =const_4
-VLDR.F64 D4, [R4]
-
-        VDIV.F64 D5, D3, D4
-        VCVT.S32.F64 S0, D5
-        VCVT.F64.S32 D5, S0
-    
-VMOV R3, R2, D5
-LDR R4, =RES_LINHA_2
-VSTR.F64 D5, [R4]
-RES_LINHA_3: .double 0.0
-LDR R4, =const_6
-VLDR.F64 D6, [R4]
-LDR R4, =const_7
-VLDR.F64 D7, [R4]
-
-        @ quociente em double
-        VDIV.F64 D10, D6, D7
-
-        @ parte inteira do quociente
-        VCVT.S32.F64 S10, D10
-
-        @ volta pra double
-        VCVT.F64.S32 D11, S10
-
-        @ multiplica pelo divisor
-        VMUL.F64 D11, D11, D7
-
-        @ resto = op1 - (quociente * op2)
-        VSUB.F64 D8, D6, D11
-    
-VMOV R3, R2, D8
-LDR R4, =RES_LINHA_3
-VSTR.F64 D8, [R4]
-RES_LINHA_4: .double 0.0
-LDR R4, =const_9
-VLDR.F64 D9, [R4]
-LDR R4, =const_10
-VLDR.F64 D10, [R4]
-
-        VCVT.S32.F64 S0, D10 
-        VMOV R0, S0
-
-        LDR R1, =um
-        VLDR.F64 D11, [R1]
-
-        CMP R0, #0
-        BLE pow_end_11
-
-        pow_loop_11:
-        VMUL.F64 D11, D11, D9
-        SUB R0, R0, #1
-        CMP R0, #0
-        BGT pow_loop_11
-
-        pow_end_11:
-    
-VMOV R3, R2, D11
-LDR R4, =RES_LINHA_4
-VSTR.F64 D11, [R4]
-RES_LINHA_5: .double 0.0
-LDR R4, =const_12
-VLDR.F64 D12, [R4]
-LDR R4, =VARIAVEL
-VSTR.F64 D12, [R4]
-VMOV R3, R2, D12
-LDR R4, =RES_LINHA_5
-VSTR.F64 D12, [R4]
-RES_LINHA_6: .double 0.0
-LDR R4, =RES_LINHA_5
-VLDR.F64 D13, [R4]
-VMOV R3, R2, D13
-LDR R4, =RES_LINHA_6
-VSTR.F64 D13, [R4]
-RES_LINHA_7: .double 0.0
-LDR R4, =const_14
-VLDR.F64 D14, [R4]
-LDR R4, =const_15
-VLDR.F64 D15, [R4]
-VMUL.F64 D16, D14, D15
-LDR R4, =VARIAVEL
-VLDR.F64 D17, [R4]
-VADD.F64 D18, D16, D17
-LDR R4, =RES_LINHA_6
-VLDR.F64 D19, [R4]
-VSUB.F64 D20, D18, D19
-VMOV R3, R2, D20
-LDR R4, =RES_LINHA_7
-VSTR.F64 D20, [R4]
-RES_LINHA_8: .double 0.0
-LDR R4, =const_21
-VLDR.F64 D21, [R4]
-LDR R4, =const_22
-VLDR.F64 D22, [R4]
-VDIV.F64 D23, D21, D22
-VMOV R3, R2, D23
-LDR R4, =RES_LINHA_8
-VSTR.F64 D23, [R4]
-VMOV R3, R2, D23
+VMUL.F64 D4, D2, D3
+VMOV R3, R2, D4
+LDR R4, =RES_LINHA_1
+VSTR.F64 D4, [R4]
+VMOV R3, R2, D4
 
     @ cópia para área fixa do display (D14); literais via R4
-    VMOV.F64 D14, D23
+    VMOV.F64 D14, D4
+
+    @ se |x| > 9999.9 -> copysign(9999.9, x)
+    LDR R4, =fp_zero
+    VLDR.F64 D15, [R4]
+    MOV R1, #0
+    VCMPE.F64 D14, D15
+    VMRS APSR_nzcv, FPSCR
+    MOVLT R1, #1
+
+    VABS.F64 D13, D14
+    LDR R4, =max_disp
+    VLDR.F64 D16, [R4]
+    VCMPE.F64 D13, D16
+    VMRS APSR_nzcv, FPSCR
+    BLE disp_apos_clamp
+
+    LDR R4, =max_disp
+    VLDR.F64 D14, [R4]
+    CMP R1, #0
+    BEQ disp_apos_clamp
+    VNEG.F64 D14, D14
+disp_apos_clamp:
 
     @ === FPSCR: truncar (round toward zero) ===
     VMRS R0, FPSCR
@@ -190,23 +104,33 @@ VMOV R3, R2, D23
     CMP R9, #9
     MOVGT R9, #9
 
-    MOV R10, #0
-    MOV R11, #0
+    MOV R5, #0
     MOV R12, R8
 
+disp_mil_loop:
+    CMP R12, #1000
+    BLT disp_cent_loop
+    SUB R12, R12, #1000
+    ADD R5, R5, #1
+    B disp_mil_loop
+
 disp_cent_loop:
+    MOV R10, #0
+disp_cent_sub:
     CMP R12, #100
     BLT disp_dez_loop
     SUB R12, R12, #100
     ADD R10, R10, #1
-    B disp_cent_loop
+    B disp_cent_sub
 
 disp_dez_loop:
+    MOV R11, #0
+disp_dez_sub:
     CMP R12, #10
     BLT disp_seg_digitos
     SUB R12, R12, #10
     ADD R11, R11, #1
-    B disp_dez_loop
+    B disp_dez_sub
 
 disp_seg_digitos:
     LDR R4, =digitos
@@ -224,12 +148,14 @@ disp_seg_digitos:
     ORR R3, R3, R0, LSL #24
     STR R3, [R2]
 
-    @ HEX4..5: cent sinal  (esquerda do grupo: 4 -)
+    @ HEX4..5: cent | (milhar + sinal em HEX5)
     LDR R2, =0xFF200030
     MOV R3, #0
     LDR R0, [R4, R10, LSL #2]
     ORR R3, R3, R0
-    ORR R3, R3, R6, LSL #8
+    LDR R0, [R4, R5, LSL #2]
+    ORR R0, R0, R6
+    ORR R3, R3, R0, LSL #8
     STR R3, [R2]
     
 _end:

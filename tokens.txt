@@ -1,0 +1,3 @@
+{"linha": 1, "tokens": [["PI", "("], ["PI", "("], ["NUM", "10"], ["NUM", "2"], ["OP", "/"], ["PF", ")"], ["VAR", "X"], ["PF", ")"]], "erro_lexico": false, "erro_semantico": true}
+{"linha": 2, "tokens": [["PI", "("], ["PI", "("], ["VAR", "X"], ["NUM", "2"], ["OP", "^"], ["PF", ")"], ["NUM", "3"], ["OP", "*"], ["PF", ")"]], "erro_lexico": false, "erro_semantico": false}
+{"linha": 3, "tokens": [["PI", "("], ["NUM", "1"], ["CE", "RES"], ["PF", ")"]], "erro_lexico": false, "erro_semantico": false}

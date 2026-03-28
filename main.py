@@ -2,7 +2,6 @@
 # Tiago de Brito Follador - TiagoFollador
 # Grupo 15  
 
-#TODO: fazer a parte dos testes -> principalmente da 2
 #TODO: verificar se o led não está ligando errado na última casa decimal
 #TODO: tem que fazer a parte das variáveis funcionarem como no teste1 -> agr não tá indo
 
@@ -411,6 +410,7 @@ def gerarAssembly(expressao):
     final.append('eps_dec: .double 1e-7')
     final.append('dez: .double 10.0')
     final.append('um: .double 1.0')
+    final.append('max_disp: .double 9999.9')
     final.extend(data)
     final.append(".text")
     final.extend(codigo_final)
@@ -507,14 +507,37 @@ def digitos_display():
 def mover_numeros_para_display(final_d_reg):
     """
     Registradores fixos (GPR): R0–R1 temporários, R2–R3 MMIO, R4 ponteiro (.data),
-    R6 máscara sinal, R8 inteiro |x|, R9 1ª decimal, R10–R12 cent/dez/uni.
+    R6 máscara sinal, R8 inteiro |x|, R9 1ª decimal, R5 milhar, R10–R12 cent/dez/uni.
     Copia o resultado para D14 e usa D10–D13, D15 só neste bloco.
-    Ordem física da placa (esquerda → direita): HEX5 … HEX0 = -456_7
-    (ex.: 10 → desligado 010_0). 0xFF200020: HEX0..3; 0xFF200030: HEX4..5.
+    Ordem física da placa (esquerda → direita): HEX5 … HEX0 = sinal+milhar | cent | dez | uni | . | dec
+    0xFF200020: HEX0..3; 0xFF200030: HEX4..5 (HEX5 = dígito do milhar OR máscara de sinal).
+    Se |x| > 9999.9, exibe ±9999.9.
     """
     return f"""
     @ cópia para área fixa do display (D14); literais via R4
     VMOV.F64 D14, {final_d_reg}
+
+    @ se |x| > 9999.9 -> copysign(9999.9, x)
+    LDR R4, =fp_zero
+    VLDR.F64 D15, [R4]
+    MOV R1, #0
+    VCMPE.F64 D14, D15
+    VMRS APSR_nzcv, FPSCR
+    MOVLT R1, #1
+
+    VABS.F64 D13, D14
+    LDR R4, =max_disp
+    VLDR.F64 D16, [R4]
+    VCMPE.F64 D13, D16
+    VMRS APSR_nzcv, FPSCR
+    BLE disp_apos_clamp
+
+    LDR R4, =max_disp
+    VLDR.F64 D14, [R4]
+    CMP R1, #0
+    BEQ disp_apos_clamp
+    VNEG.F64 D14, D14
+disp_apos_clamp:
 
     @ === FPSCR: truncar (round toward zero) ===
     VMRS R0, FPSCR
@@ -559,23 +582,33 @@ def mover_numeros_para_display(final_d_reg):
     CMP R9, #9
     MOVGT R9, #9
 
-    MOV R10, #0
-    MOV R11, #0
+    MOV R5, #0
     MOV R12, R8
 
+disp_mil_loop:
+    CMP R12, #1000
+    BLT disp_cent_loop
+    SUB R12, R12, #1000
+    ADD R5, R5, #1
+    B disp_mil_loop
+
 disp_cent_loop:
+    MOV R10, #0
+disp_cent_sub:
     CMP R12, #100
     BLT disp_dez_loop
     SUB R12, R12, #100
     ADD R10, R10, #1
-    B disp_cent_loop
+    B disp_cent_sub
 
 disp_dez_loop:
+    MOV R11, #0
+disp_dez_sub:
     CMP R12, #10
     BLT disp_seg_digitos
     SUB R12, R12, #10
     ADD R11, R11, #1
-    B disp_dez_loop
+    B disp_dez_sub
 
 disp_seg_digitos:
     LDR R4, =digitos
@@ -593,12 +626,14 @@ disp_seg_digitos:
     ORR R3, R3, R0, LSL #24
     STR R3, [R2]
 
-    @ HEX4..5: cent sinal  (esquerda do grupo: 4 -)
+    @ HEX4..5: cent | (milhar + sinal em HEX5)
     LDR R2, =0xFF200030
     MOV R3, #0
     LDR R0, [R4, R10, LSL #2]
     ORR R3, R3, R0
-    ORR R3, R3, R6, LSL #8
+    LDR R0, [R4, R5, LSL #2]
+    ORR R0, R0, R6
+    ORR R3, R3, R0, LSL #8
     STR R3, [R2]
     """
     
