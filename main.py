@@ -35,6 +35,8 @@ def salvarHistorico(resultado):
 
 #pega o resultado da linha em um histórico
 def pegarHistorico(linha):
+    if linha < 1 or linha > len(historico_linha):
+        return None
     return historico_linha[len(historico_linha) - linha]
 
 #validadores de formato:
@@ -365,7 +367,11 @@ def gerarAssembly(expressao):
                     if dados[1][1] == 'RES':
                         dest = regD(n_const)
 
-                        codigo_final.append(f'LDR R4, ={pegarHistorico(linhas)}')
+                        label_historico = pegarHistorico(linhas)
+                        if label_historico is None:
+                            codigo_final.append('LDR R4, =fp_zero')
+                        else:
+                            codigo_final.append(f'LDR R4, ={label_historico}')
                         codigo_final.append(f'VLDR.F64 {dest}, [R4]')
                         
                         eh_variavel = True
