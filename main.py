@@ -22,7 +22,6 @@ def salvarHistorico(resultado):
 def pegarHistorico(linha):
     return historico_linha[len(historico_linha) - linha]
 
-
 #validadores de formato:
 def digito(z):
     if z >= '0' and z <= '9':
@@ -158,19 +157,23 @@ def validarSubexpressao(expr, linha_idx):
         return expr[0][0] == "VAR"
     if n == 2:
         t0, t1 = expr[0], expr[1]
-
+        
         #valido se é RES
         if t1[0] == "CE" and t1[1] == "RES":
             #o primeiro token deve ser um número
             if t0[0] != "NUM":
                 return False
 
-            #valido se o número é inteiro e positivo
-            if t0[1] < 0 or t0[1] != int(t0[1]):
+            try:
+                n_val = float(t0[1])
+            except ValueError:
                 return False
 
-            
-            n_linhas = int(t0[1])
+            # inteiro e positivo (N >= 1 abaixo)
+            if n_val < 0 or n_val != int(n_val):
+                return False
+
+            n_linhas = int(n_val)
             # resultado da expressão N linhas anteriores: precisa haver linha alvo
             if n_linhas < 1:
                 return False
@@ -289,8 +292,8 @@ def gerarAssembly(expressao):
                     if dados[1][1] == 'RES':
                         dest = f'D{n_const}'
 
-                        codigo_final.append(f'LDR R0, ={pegarHistorico(linhas)}')
-                        codigo_final.append(f'VLDR.F64 {dest}, [R0]')
+                        codigo_final.append(f'LDR R4, ={pegarHistorico(linhas)}')
+                        codigo_final.append(f'VLDR.F64 {dest}, [R4]')
                         
                         eh_variavel = True
                         exp_result[exp] = dest
@@ -351,15 +354,15 @@ def gerarAssembly(expressao):
         print(exp_result.values())
         final_reg = list(exp_result.values())[-1] if len(exp_result) > 0 else ''
         codigo_final.append(f'VMOV R3, R2, {final_reg}')
-        codigo_final.append(f'LDR R0, =RES_LINHA_{linhas}')
-        codigo_final.append(f'VSTR.F64 {final_reg}, [R0]')
+        codigo_final.append(f'LDR R4, =RES_LINHA_{linhas}')
+        codigo_final.append(f'VSTR.F64 {final_reg}, [R4]')
         salvarHistorico(f"RES_LINHA_{linhas}")
         
             
     #passo para o registrador final
     final_reg = list(exp_result.values())[-1]
     codigo_final.append(f'VMOV R3, R2, {final_reg}')
-    codigo_final.append(mover_numeros_para_display(n_const, final_reg))
+    codigo_final.append(mover_numeros_para_display(final_reg))
     
     
     codigo_final.append("_end:")
@@ -367,6 +370,8 @@ def gerarAssembly(expressao):
     final = []
     final.append(digitos_display())
     final.append(".data")
+    final.append('fp_zero: .double 0.0')
+    final.append('eps_dec: .double 1e-7')
     final.append('dez: .double 10.0')
     final.append('um: .double 1.0')
     final.extend(data)
@@ -377,10 +382,10 @@ def gerarAssembly(expressao):
         
 def atribuir_valor(operando, n_const, data, codigo_final):
     data.append(f'const_{n_const}: .double {operando[1]}')
-    codigo_final.append(f'LDR R{n_const}, =const_{n_const}')
-    codigo_final.append(f'VLDR.F64 D{n_const}, [R{n_const}]')
+    codigo_final.append(f'LDR R4, =const_{n_const}')
+    codigo_final.append(f'VLDR.F64 D{n_const}, [R4]')
     n_const += 1
-    
+
     return data, codigo_final, n_const
         
 def calcular_expressao(operacao, var, v1, v2, n_const):
@@ -462,94 +467,101 @@ def digitos_display():
     .word 0x6F @ 9
     """
     
-#TODO: deixar o código truncar ao invés de ele arredondar -> Não consegui fazer
-def mover_numeros_para_display(n_const, d_reg):
+def mover_numeros_para_display(final_d_reg):
+    """
+    Registradores fixos (GPR): R0–R1 temporários, R2–R3 MMIO, R4 ponteiro (.data),
+    R6 máscara sinal, R8 inteiro |x|, R9 1ª decimal, R10–R12 cent/dez/uni.
+    Copia o resultado para D14 e usa D10–D13, D15 só neste bloco.
+    Ordem física da placa (esquerda → direita): HEX5 … HEX0 = -456_7
+    (ex.: 10 → desligado 010_0). 0xFF200020: HEX0..3; 0xFF200030: HEX4..5.
+    """
     return f"""
-    @ === Seta FPSCR para truncar (Round toward Zero) ===
+    @ cópia para área fixa do display (D14); literais via R4
+    VMOV.F64 D14, {final_d_reg}
+
+    @ === FPSCR: truncar (round toward zero) ===
     VMRS R0, FPSCR
-    BIC  R0, R0, #0x00C00000    @ limpa bits [23:22]
-    ORR  R0, R0, #0x00C00000    @ seta RZ = 11 (truncar)
+    BIC  R0, R0, #0x00C00000
+    ORR  R0, R0, #0x00C00000
     VMSR FPSCR, R0
 
-    @ =========================
-    @ inteiro (agora trunca)
-    @ =========================
-    VCVT.S32.F64 S10, {d_reg}
-    VMOV R{n_const}, S10
+    @ sinal (negativo < 0.0), máscara 0x40 = segmento '-'
+    LDR R4, =fp_zero
+    VLDR.F64 D15, [R4]
+    VCMPE.F64 D14, D15
+    VMRS APSR_nzcv, FPSCR
+    MOV R6, #0
+    MOVLT R6, #0x40
 
-    @ =========================
-    @ decimal (agora trunca)
-    @ =========================
-    VCVT.F64.S32 D10, S10
-    VSUB.F64 D11, {d_reg}, D10
+    @ parte inteira da magnitude |x| (trunc RZ)
+    VABS.F64 D13, D14
+    VCVT.S32.F64 S10, D13
+    VMOV R8, S10
 
-    LDR R0, =dez
-    VLDR.F64 D12, [R0]
-    VMUL.F64 D11, D11, D12
+    @ 1ª decimal: dec = trunc(|x|*10 + eps) - trunc(|x|)*10
+    @ (evita frac = |x| - int(|x|), que vira 0.3999... e 10*frac -> 3 em vez de 4)
+    LDR R4, =dez
+    VLDR.F64 D12, [R4]
+    VMUL.F64 D11, D13, D12
+    LDR R4, =eps_dec
+    VLDR.F64 D15, [R4]
+    VADD.F64 D11, D11, D15
+    VCVT.S32.F64 S11, D11
+    VMOV R9, S11
+    MOV R1, #10
+    MUL R0, R8, R1
+    SUB R9, R9, R0
 
-    VCVT.S32.F64 S11, D11       @ trunca a 1ª casa decimal
-    VMOV R{n_const+1}, S11
-
-    @ === Restaura FPSCR para Round to Nearest ===
+    @ === FPSCR: volta round to nearest ===
     VMRS R0, FPSCR
-    BIC  R0, R0, #0x00C00000    @ limpa bits [23:22] → volta a 00 (RN)
+    BIC  R0, R0, #0x00C00000
     VMSR FPSCR, R0
 
-    CMP R{n_const+1}, #0
-    BGE check_max
-    MOV R{n_const+1}, #0
+    CMP R9, #0
+    MOVLT R9, #0
+    CMP R9, #9
+    MOVGT R9, #9
 
-    check_max:
-    CMP R{n_const+1}, #9
-    BLE ok_decimal
-    MOV R{n_const+1}, #9
+    MOV R10, #0
+    MOV R11, #0
+    MOV R12, R8
 
-    ok_decimal:
+disp_cent_loop:
+    CMP R12, #100
+    BLT disp_dez_loop
+    SUB R12, R12, #100
+    ADD R10, R10, #1
+    B disp_cent_loop
 
-    @ =========================
-    @ separar dígitos
-    @ =========================
-    MOV R{n_const+2}, #0
-    MOV R{n_const+3}, #0
-    MOV R{n_const+4}, R{n_const}
+disp_dez_loop:
+    CMP R12, #10
+    BLT disp_seg_digitos
+    SUB R12, R12, #10
+    ADD R11, R11, #1
+    B disp_dez_loop
 
-cent_loop:
-    CMP R{n_const+4}, #100
-    BLT dez_loop
-    SUB R{n_const+4}, R{n_const+4}, #100
-    ADD R{n_const+2}, R{n_const+2}, #1
-    B cent_loop
+disp_seg_digitos:
+    LDR R4, =digitos
 
-dez_loop:
-    CMP R{n_const+4}, #10
-    BLT final_digitos
-    SUB R{n_const+4}, R{n_const+4}, #10
-    ADD R{n_const+3}, R{n_const+3}, #1
-    B dez_loop
-
-final_digitos:
-    LDR R{n_const+5}, =digitos
-
-    LDR R{n_const+6}, [R{n_const+5}, R{n_const+2}, LSL #2]
-    LDR R{n_const+7}, [R{n_const+5}, R{n_const+3}, LSL #2]
-    LDR R{n_const+8}, [R{n_const+5}, R{n_const+4}, LSL #2]
-    LDR R{n_const+9}, [R{n_const+5}, R{n_const+1}, LSL #2]
-
+    @ HEX0..3: dec _ uni dez  (direita: 7 _ 6 5 em -456.7)
     LDR R2, =0xFF200020
     MOV R3, #0
-
-    ORR R3, R3, R{n_const+9}          @ HEX0 (decimal)
+    LDR R0, [R4, R9, LSL #2]
+    ORR R3, R3, R0
     MOV R1, #0x08
-    ORR R3, R3, R1, LSL #8            @ HEX1 ("_")
-    ORR R3, R3, R{n_const+8}, LSL #16 @ HEX2 (unidades)
-    ORR R3, R3, R{n_const+7}, LSL #24 @ HEX3 (dezenas)
-
+    ORR R3, R3, R1, LSL #8
+    LDR R0, [R4, R12, LSL #2]
+    ORR R3, R3, R0, LSL #16
+    LDR R0, [R4, R11, LSL #2]
+    ORR R3, R3, R0, LSL #24
     STR R3, [R2]
 
+    @ HEX4..5: cent sinal  (esquerda do grupo: 4 -)
     LDR R2, =0xFF200030
     MOV R3, #0
-    ORR R3, R3, R{n_const+6}          @ HEX4 (centenas)
-
+    LDR R0, [R4, R10, LSL #2]
+    ORR R3, R3, R0
+    ORR R3, R3, R6, LSL #8
     STR R3, [R2]
     """
     
