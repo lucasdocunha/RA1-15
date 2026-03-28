@@ -127,53 +127,101 @@ def parseExpressao(linha) -> list[str]:
         
     return tokens, erro
 
-def executarExpressao(tokens):
 
-    # Recebe tuplas de tokens e retorna dicioinario em ordem de precedencia
+def valida_operando(t):
+    """Operando válido em subexpressão binária: número, memória ou subexpressão já fechada."""
+    return t[0] in ("NUM", "VAR", "EXP")
 
-    # precisamos abrir os tokens e inserir eles 
-    # em ordem de precedencia(pilha)
-    # onde os parenteses tem maior precedencia
-    # e precisaomos entrar no mais afundo e retornar ao comeco com as expressoes
-    #
-    # - precisamos de uma pilha para armazenar a ordem dos tokens
-    # - precisamos de uma variavel/contante para definir uma conta
-    #   que é resultante da anterior ou concatena com a anterior
+
+def validarSubexpressao(expr, linha_idx):
+    """
+    Valida um bloco entre parênteses (já em ordem RPN interna).
+    - (MEM): um token VAR
+    - (V MEM): NUM + VAR
+    - (N RES): NUM (inteiro N >= 0) + CE RES; exige linha alvo existente (N linhas acima)
+    - (A B op): três tokens, último OP
+    """
+
+    #para quando a lista estiver vazia
+    if not expr:
+        return False
+
     
+    n = len(expr)
+    if n == 1:
+        return expr[0][0] == "VAR"
+    if n == 2:
+        t0, t1 = expr[0], expr[1]
+
+        #valido se é RES
+        if t1[0] == "CE" and t1[1] == "RES":
+            #o primeiro token deve ser um número
+            if t0[0] != "NUM":
+                return False
+
+            #valido se o número é inteiro e positivo
+            if t0[1] < 0 or t0[1] != int(t0[1]):
+                return False
+
+            
+            n_linhas = int(t0[1])
+            # resultado da expressão N linhas anteriores: precisa haver linha alvo
+            if n_linhas < 1:
+                return False
+
+            #valido se a linha alvo existe
+            alvo = linha_idx - n_linhas
+            return alvo >= 0
+
+        #valido se é um número e uma variável
+        if t0[0] == "NUM" and t1[0] == "VAR":
+            return True
+
+        return False
+
+    #se for uma operação, tem que ter 3
+    if n == 3:
+        if expr[2][0] != "OP":
+            return False
+        return valida_operando(expr[0]) and valida_operando(expr[1])
+    return False
+
+
+def executarExpressao(tokens, linha_idx=0):
+    """
+    Agrupa tokens por parênteses e valida formato (RPN / comandos especiais).
+    linha_idx: índice 0-based da linha no arquivo (para validar (N RES)).
+    """
     pilha = []
     ordem = {}
     ordem_da_expressao = 0
     erro = False
 
     for token in tokens:
-        if token[0] != 'PF':
+        if token[0] != "PF":
             pilha.append(token)
         else:
             expressao_atual = []
-
-            # contra pilha vazia
             if not pilha:
                 erro = True
+            else:
+                while pilha and pilha[-1][0] != "PI":
+                    expressao_atual.append(pilha.pop())
+                if not pilha or pilha[-1][0] != "PI":
+                    erro = True
+                else:
+                    pilha.pop()
+                    expressao_atual.reverse()
+                    if not validarSubexpressao(expressao_atual, linha_idx):
+                        erro = True
+                    key = f"EXP{ordem_da_expressao}"
+                    ordem[key] = expressao_atual
+                    pilha.append(("EXP", key))
+                    ordem_da_expressao += 1
 
-            while pilha and pilha[-1][0] != 'PI':
-                expressao_atual.append(pilha.pop())
-
-            # contra PI não encontrado
-            if not pilha or pilha[-1][0] != 'PI':
-                erro = True
-
-            pilha.pop()
-
-            expressao_atual.reverse()
-
-            key = f"EXP{ordem_da_expressao}"
-            ordem[key] = expressao_atual
-            pilha.append(("EXP", key))
-            ordem_da_expressao += 1
-
-    # verifica se num tem parênteses não fechados
-    itens_restantes = [t for t in pilha if t[0] == 'PI']
-    if itens_restantes:
+    if any(t[0] == "PI" for t in pilha):
+        erro = True
+    if len(pilha) != 1 or pilha[0][0] != "EXP":
         erro = True
 
     return ordem, erro
@@ -387,25 +435,35 @@ def digitos_display():
 #TODO: deixar o código truncar ao invés de ele arredondar -> Não consegui fazer
 def mover_numeros_para_display(n_const, d_reg):
     return f"""
+    @ === Seta FPSCR para truncar (Round toward Zero) ===
+    VMRS R0, FPSCR
+    BIC  R0, R0, #0x00C00000    @ limpa bits [23:22]
+    ORR  R0, R0, #0x00C00000    @ seta RZ = 11 (truncar)
+    VMSR FPSCR, R0
+
     @ =========================
-    @ inteiro
+    @ inteiro (agora trunca)
     @ =========================
     VCVT.S32.F64 S10, {d_reg}
     VMOV R{n_const}, S10
 
     @ =========================
-    @ decimal
+    @ decimal (agora trunca)
     @ =========================
     VCVT.F64.S32 D10, S10
     VSUB.F64 D11, {d_reg}, D10
-    
+
     LDR R0, =dez
     VLDR.F64 D12, [R0]
     VMUL.F64 D11, D11, D12
 
-
-    VCVT.S32.F64 S11, D11
+    VCVT.S32.F64 S11, D11       @ trunca a 1ª casa decimal
     VMOV R{n_const+1}, S11
+
+    @ === Restaura FPSCR para Round to Nearest ===
+    VMRS R0, FPSCR
+    BIC  R0, R0, #0x00C00000    @ limpa bits [23:22] → volta a 00 (RN)
+    VMSR FPSCR, R0
 
     CMP R{n_const+1}, #0
     BGE check_max
@@ -424,7 +482,7 @@ def mover_numeros_para_display(n_const, d_reg):
     MOV R{n_const+2}, #0
     MOV R{n_const+3}, #0
     MOV R{n_const+4}, R{n_const}
-    
+
 cent_loop:
     CMP R{n_const+4}, #100
     BLT dez_loop
@@ -438,7 +496,7 @@ dez_loop:
     SUB R{n_const+4}, R{n_const+4}, #10
     ADD R{n_const+3}, R{n_const+3}, #1
     B dez_loop
-        
+
 final_digitos:
     LDR R{n_const+5}, =digitos
 
@@ -450,17 +508,17 @@ final_digitos:
     LDR R2, =0xFF200020
     MOV R3, #0
 
-    ORR R3, R3, R{n_const+9}          @ HEX0
+    ORR R3, R3, R{n_const+9}          @ HEX0 (decimal)
     MOV R1, #0x08
-    ORR R3, R3, R1, LSL #8            @ "_"
-    ORR R3, R3, R{n_const+8}, LSL #16 @ HEX2
-    ORR R3, R3, R{n_const+7}, LSL #24 @ HEX3
+    ORR R3, R3, R1, LSL #8            @ HEX1 ("_")
+    ORR R3, R3, R{n_const+8}, LSL #16 @ HEX2 (unidades)
+    ORR R3, R3, R{n_const+7}, LSL #24 @ HEX3 (dezenas)
 
     STR R3, [R2]
 
     LDR R2, =0xFF200030
     MOV R3, #0
-    ORR R3, R3, R{n_const+6}          @ HEX4
+    ORR R3, R3, R{n_const+6}          @ HEX4 (centenas)
 
     STR R3, [R2]
     """
@@ -487,7 +545,7 @@ if __name__ == ("__main__"):
         if erro:
             print(f"Linha inválida!")
         else:
-            ordem, erro = executarExpressao(tokens)
+            ordem, erro = executarExpressao(tokens, linha_idx=idx)
             if erro:
                 print(f"Linha inválida!")
             else:
@@ -495,5 +553,4 @@ if __name__ == ("__main__"):
                 wagner.append(ordem)
     print("\nExpressões processadas:")
     print(wagner)
-    codigo_assembly = gerarAssembly(wagner)
-    print(codigo_assembly)
+    salvarArquivo('saida.txt', gerarAssembly(wagner))
