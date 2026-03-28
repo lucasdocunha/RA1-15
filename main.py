@@ -7,6 +7,12 @@
 
 variaveis = {}
 historico_linha = []
+MAX_D = 16
+
+
+def regD(indice: int):
+    return f'D{indice % (MAX_D)}'
+
 # salvar/pegar variaveis globais
 # atua a nivel de token
 def salvarOuPegarVariavel(nome, valor):
@@ -302,8 +308,8 @@ def gerarAssembly(expressao):
                 value = salvarOuPegarVariavel(dados[0][1], None)[1]
                 atribuirVariavel(dados[0][1], variaveis_data, data, value)
                 codigo_final.append(f'LDR R4, ={dados[0][1]}')
-                codigo_final.append(f'VLDR.F64 D{n_const}, [R4]')
-                dest = f'D{n_const}'
+                codigo_final.append(f'VLDR.F64 {regD(n_const)}, [R4]')
+                dest = regD(n_const)
                 exp_result[exp] = dest
                 n_const += 1
                 eh_variavel = True
@@ -316,7 +322,7 @@ def gerarAssembly(expressao):
                     data, codigo_final, n_const = atribuir_valor(
                         ('NUM', dados[1][1]), n_const, data, codigo_final
                     )
-                    dest = f'D{n_const-1}'
+                    dest = regD(n_const-1)
                     codigo_final.append(f'LDR R4, ={dados[0][1]}')
                     codigo_final.append(f'VSTR.F64 {dest}, [R4]')
                     exp_result[exp] = dest
@@ -329,7 +335,7 @@ def gerarAssembly(expressao):
                     data, codigo_final, n_const = atribuir_valor(
                         ('NUM', dados[0][1]), n_const, data, codigo_final
                     )
-                    dest = f'D{n_const-1}'
+                    dest = regD(n_const-1)
                     codigo_final.append(f'LDR R4, ={dados[1][1]}')
                     codigo_final.append(f'VSTR.F64 {dest}, [R4]')
                     exp_result[exp] = dest
@@ -337,7 +343,7 @@ def gerarAssembly(expressao):
 
                 elif dados[0][0] == 'NUM' and dados[1][0] == 'CE':
                     if dados[1][1] == 'RES':
-                        dest = f'D{n_const}'
+                        dest = regD(n_const)
 
                         codigo_final.append(f'LDR R4, ={pegarHistorico(linhas)}')
                         codigo_final.append(f'VLDR.F64 {dest}, [R4]')
@@ -359,13 +365,13 @@ def gerarAssembly(expressao):
                     data, codigo_final, n_const = atribuir_valor(
                         operando_a, n_const, data, codigo_final
                     )
-                    op1 = f'D{n_const-1}'
+                    op1 = regD(n_const-1)
                 elif operando_a[0] == 'VAR':
                     value = salvarOuPegarVariavel(operando_a[1], None)[1]
                     atribuirVariavel(operando_a[1], variaveis_data, data, value)
                     codigo_final.append(f'LDR R4, ={operando_a[1]}')
-                    codigo_final.append(f'VLDR.F64 D{n_const}, [R4]')
-                    op1 = f'D{n_const}'
+                    codigo_final.append(f'VLDR.F64 {regD(n_const)}, [R4]')
+                    op1 = regD(n_const)
                     n_const += 1
                 else:
                     #pega o resultado da exp resolvida
@@ -376,13 +382,13 @@ def gerarAssembly(expressao):
                         data, codigo_final, n_const = atribuir_valor(
                             operando_b, n_const, data, codigo_final
                         )
-                        op2 = f'D{n_const-1}'
+                        op2 = regD(n_const-1)
                     elif operando_b[0] == 'VAR':
                         value = salvarOuPegarVariavel(operando_b[1], None)[1]
                         atribuirVariavel(operando_b[1], variaveis_data, data, value)
                         codigo_final.append(f'LDR R4, ={operando_b[1]}')
-                        codigo_final.append(f'VLDR.F64 D{n_const}, [R4]')
-                        op2 = f'D{n_const}'
+                        codigo_final.append(f'VLDR.F64 {regD(n_const)}, [R4]')
+                        op2 = regD(n_const)
                         n_const += 1
                     else:
                         #pega o resultado da exp resolvida
@@ -390,7 +396,7 @@ def gerarAssembly(expressao):
 
                 # operação
                 if operador[0] == 'OP':
-                    dest = f'D{n_const}'
+                    dest = regD(n_const)
                     
                     codigo_final.append( #pega exatamente qual é a operação e calcula, retornando a linha 
                         calcular_expressao(operadores[operador[1]], dest, op1, op2, n_const)
@@ -433,7 +439,7 @@ def gerarAssembly(expressao):
 def atribuir_valor(operando, n_const, data, codigo_final):
     data.append(f'const_{n_const}: .double {operando[1]}')
     codigo_final.append(f'LDR R4, =const_{n_const}')
-    codigo_final.append(f'VLDR.F64 D{n_const}, [R4]')
+    codigo_final.append(f'VLDR.F64 {regD(n_const)}, [R4]')
     n_const += 1
 
     return data, codigo_final, n_const
