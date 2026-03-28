@@ -24,26 +24,37 @@ LDR R1, =const_1
 VLDR.F64 D1, [R1]
 VADD.F64 D2, D0, D1
 VMOV R3, R2, D2
+VMOV R3, R2, D2
+
+    @ === Seta FPSCR para truncar (Round toward Zero) ===
+    VMRS R0, FPSCR
+    BIC  R0, R0, #0x00C00000    @ limpa bits [23:22]
+    ORR  R0, R0, #0x00C00000    @ seta RZ = 11 (truncar)
+    VMSR FPSCR, R0
 
     @ =========================
-    @ inteiro
+    @ inteiro (agora trunca)
     @ =========================
     VCVT.S32.F64 S10, D2
     VMOV R3, S10
 
     @ =========================
-    @ decimal
+    @ decimal (agora trunca)
     @ =========================
     VCVT.F64.S32 D10, S10
     VSUB.F64 D11, D2, D10
-    
+
     LDR R0, =dez
     VLDR.F64 D12, [R0]
     VMUL.F64 D11, D11, D12
 
-
-    VCVT.S32.F64 S11, D11
+    VCVT.S32.F64 S11, D11       @ trunca a 1ª casa decimal
     VMOV R4, S11
+
+    @ === Restaura FPSCR para Round to Nearest ===
+    VMRS R0, FPSCR
+    BIC  R0, R0, #0x00C00000    @ limpa bits [23:22] → volta a 00 (RN)
+    VMSR FPSCR, R0
 
     CMP R4, #0
     BGE check_max
@@ -62,7 +73,7 @@ VMOV R3, R2, D2
     MOV R5, #0
     MOV R6, #0
     MOV R7, R3
-    
+
 cent_loop:
     CMP R7, #100
     BLT dez_loop
@@ -76,7 +87,7 @@ dez_loop:
     SUB R7, R7, #10
     ADD R6, R6, #1
     B dez_loop
-        
+
 final_digitos:
     LDR R8, =digitos
 
@@ -88,17 +99,17 @@ final_digitos:
     LDR R2, =0xFF200020
     MOV R3, #0
 
-    ORR R3, R3, R12          @ HEX0
+    ORR R3, R3, R12          @ HEX0 (decimal)
     MOV R1, #0x08
-    ORR R3, R3, R1, LSL #8            @ "_"
-    ORR R3, R3, R11, LSL #16 @ HEX2
-    ORR R3, R3, R10, LSL #24 @ HEX3
+    ORR R3, R3, R1, LSL #8            @ HEX1 ("_")
+    ORR R3, R3, R11, LSL #16 @ HEX2 (unidades)
+    ORR R3, R3, R10, LSL #24 @ HEX3 (dezenas)
 
     STR R3, [R2]
 
     LDR R2, =0xFF200030
     MOV R3, #0
-    ORR R3, R3, R9          @ HEX4
+    ORR R3, R3, R9          @ HEX4 (centenas)
 
     STR R3, [R2]
     
