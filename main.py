@@ -7,7 +7,7 @@
 #TODO: tem que fazer a parte das variáveis funcionarem como no teste1 -> agr não tá indo
 
 variaveis = {}
-
+historico_linha = []
 # salvar/pegar variaveis globais
 def salvarOuPegarVariavel(nome, valor):
     if nome in variaveis:
@@ -15,6 +15,12 @@ def salvarOuPegarVariavel(nome, valor):
     else:
         variaveis[nome] = valor
         return ['NUM', valor]
+    
+def salvarHistorico(resultado):
+    historico_linha.append(resultado)
+
+def pegarHistorico(linha):
+    return historico_linha[len(historico_linha) - linha - 1]
 
 
 #validadores de formato:
@@ -206,27 +212,48 @@ def gerarAssembly(expressao):
         '//': "//"
     }
     n_const = 0
+    linhas = 0
     for tokens in expressao:
         #dicionário das expressões já resolvidas
+        linhas += 1
         exp_result = {}
+        codigo_final.append(f"RES_LINHA_{linhas}: .double 0.0")
+
         for exp, dados in tokens.items():
             print(exp, dados)
             #é uma expressão já resolvida
             eh_variavel = False
-            if len(dados) == 2:
+
+            if len(dados) == 1 and dados[0][0] == 'VAR':
+                exp_result[exp] = dest
+                eh_variavel = True
+
+            elif len(dados) == 2:
                 if dados[0][0] == 'VAR' and dados[1][0] == 'NUM':
                     salvarOuPegarVariavel(dados[0][1], dados[1][1])
                     eh_variavel = True
+                
                 elif dados[0][0] == 'NUM' and dados[1][0] == 'VAR':
                     salvarOuPegarVariavel(dados[1][1], dados[0][1])
                     eh_variavel = True
 
+                elif dados[0][0] == 'NUM' and dados[1][0] == 'CE':
+                    if dados[1][1] == 'RES':
+                        dest = f'D{n_const}'
+
+                        codigo_final.append(f'LDR R0, ={pegarHistorico(linhas)}')
+                        codigo_final.append(f'VLDR.F64 {dest}, [R0]')
+                        
+                        eh_variavel = True
+                        exp_result[exp] = dest
+                        n_const += 1
                 else:
                     operando_a = dados[0]
                     operando_b = None
                     operador = dados[1]
             else:
                 #expressão não resolvida
+                # print(dados)
                 operando_a, operando_b, operador = dados
             
             if not eh_variavel:
@@ -271,11 +298,14 @@ def gerarAssembly(expressao):
 
                     exp_result[exp] = dest
                     n_const += 1
-                    
+
         #passo para o registrador final
         print(exp_result.values())
         final_reg = list(exp_result.values())[-1] if len(exp_result) > 0 else ''
         codigo_final.append(f'VMOV R3, R2, {final_reg}')
+        codigo_final.append(f'LDR R0, =RES_LINHA_{linhas}')
+        codigo_final.append(f'VSTR.F64 {final_reg}, [R0]')
+        salvarHistorico(f"RES_LINHA_{linhas}")
         
             
     #passo para o registrador final
