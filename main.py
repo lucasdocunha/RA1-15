@@ -5,9 +5,10 @@
 
 variaveis = {}
 historico_linha = []
-MAX_D = 16
+MAX_D = 16 #número de registradores D e R máximos do CPUlator
 
 
+#retorna o registrador D correspondente ao índice
 def regD(indice: int):
     return f'D{indice % (MAX_D)}'
 
@@ -21,15 +22,18 @@ def salvarOuPegarVariavel(nome, valor):
         variaveis[nome] = '0.0'
 
     return ['NUM', variaveis[nome]]
+
 # atua a nivel de assembly
 def atribuirVariavel(nome, variaveis_data: set, data: list, valor_inicial='0.0'):
     if nome not in variaveis_data:
         data.append(f'{nome}: .double {valor_inicial}')
         variaveis_data.add(nome)
 
+#salva o resultado da linha em um histórico
 def salvarHistorico(resultado):
     historico_linha.append(resultado)
 
+#pega o resultado da linha em um histórico
 def pegarHistorico(linha):
     return historico_linha[len(historico_linha) - linha]
 
@@ -113,6 +117,7 @@ def estadoParenteses(entrada, i):
             # PF: parêntese final
             return ("PF", p), i + 1, erro
 
+#analisa a linha e retorna uma lista de tokens
 def parseExpressao(linha) -> list[str]:
     tokens = []
     i = 0
@@ -144,12 +149,12 @@ def parseExpressao(linha) -> list[str]:
         
     return tokens, erro
 
-
+#verifica se o operando é válido
 def valida_operando(t):
     """Operando válido em subexpressão binária: número, memória ou subexpressão já fechada."""
     return t[0] in ("NUM", "VAR", "EXP")
 
-
+#valida um bloco entre parênteses
 def validarSubexpressao(expr, linha_idx):
     """
     Valida um bloco entre parênteses (já em ordem RPN interna).
@@ -267,7 +272,7 @@ def salvarArquivo(nome_arquivo:str, conteudo):
 
 
 def salvar_tokens_txt(linhas_tokens: list[str]) -> None:
-    """Grava só tokens.txt: uma linha por expressão — 'Linha N - …' ou 'Linha N - inválido'."""
+    #Grava só tokens.txt: uma linha por expressão — 'Linha N - …' ou 'Linha N - inválido'.
     salvarArquivo(
         "tokens.txt",
         "\n".join(linhas_tokens) + ("\n" if linhas_tokens else ""),
@@ -303,6 +308,8 @@ def gerarAssembly(expressao):
         exp_result = {}
         codigo_final.append(f"RES_LINHA_{linhas}: .double 0.0")
 
+
+        #gera o assembly para cada expressão
         for exp, dados in tokens.items():
             # Bloco já fechado (leitura de VAR, atribuição, RES, etc.)
             eh_variavel = False
@@ -445,6 +452,7 @@ def gerarAssembly(expressao):
     
     return "\n".join(final)
         
+#atribui um valor a um registrador D
 def atribuir_valor(operando, n_const, data, codigo_final):
     data.append(f'const_{n_const}: .double {operando[1]}')
     codigo_final.append(f'LDR R4, =const_{n_const}')
@@ -453,6 +461,7 @@ def atribuir_valor(operando, n_const, data, codigo_final):
 
     return data, codigo_final, n_const
         
+#calcula a expressão baseado noq foi passado
 def calcular_expressao(operacao, var, v1, v2, n_const):
     
     if operacao == "^":
@@ -466,7 +475,7 @@ def calcular_expressao(operacao, var, v1, v2, n_const):
 
     return f"{operacao} {var}, {v1}, {v2}"
         
-        
+
 def potencia(n_const, op1, op2, dest):
     label_loop = f"pow_loop_{n_const}"
     label_end  = f"pow_end_{n_const}"
@@ -678,7 +687,6 @@ disp_seg_digitos:
     STR R3, [R2]
     """
     
-
 def testar_lexico_valido():
     t, e = parseExpressao("(3.14 2.0 +)")
     assert not e
