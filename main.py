@@ -10,12 +10,20 @@ variaveis = {}
 historico_linha = []
 # salvar/pegar variaveis globais
 def salvarOuPegarVariavel(nome, valor):
-    if nome in variaveis:
-        return ['NUM', variaveis[nome]]
-    else:
+    if valor is not None:
         variaveis[nome] = valor
         return ['NUM', valor]
+
+    if nome not in variaveis:
+        variaveis[nome] = '0.0'
+
+    return ['NUM', variaveis[nome]]
     
+def atribuirVariavel(nome, variaveis_data: set, data: list, valor_inicial='0.0'):
+    if nome not in variaveis_data:
+        data.append(f'{nome}: .double {valor_inicial}')
+        variaveis_data.add(nome)
+
 def salvarHistorico(resultado):
     historico_linha.append(resultado)
 
@@ -250,6 +258,8 @@ def salvarArquivo(arquivo:str, conteudo):
 def gerarAssembly(expressao):    
     
     codigo_final, data = [], []
+    variaveis_data = set()
+
     codigo_final.append(".global _start")
     codigo_final.append("_start:")
         
@@ -276,16 +286,40 @@ def gerarAssembly(expressao):
             eh_variavel = False
 
             if len(dados) == 1 and dados[0][0] == 'VAR':
+                value = salvarOuPegarVariavel(dados[0][1], None)[1]
+                atribuirVariavel(dados[0][1], variaveis_data, data, value)
+                codigo_final.append(f'LDR R4, ={dados[0][1]}')
+                codigo_final.append(f'VLDR.F64 D{n_const}, [R4]')
+                dest = f'D{n_const}'
                 exp_result[exp] = dest
+                n_const += 1
                 eh_variavel = True
 
             elif len(dados) == 2:
                 if dados[0][0] == 'VAR' and dados[1][0] == 'NUM':
                     salvarOuPegarVariavel(dados[0][1], dados[1][1])
+                    atribuirVariavel(dados[0][1], variaveis_data, data, dados[1][1])
+
+                    data, codigo_final, n_const = atribuir_valor(
+                        ('NUM', dados[1][1]), n_const, data, codigo_final
+                    )
+                    dest = f'D{n_const-1}'
+                    codigo_final.append(f'LDR R4, ={dados[0][1]}')
+                    codigo_final.append(f'VSTR.F64 {dest}, [R4]')
+                    exp_result[exp] = dest
                     eh_variavel = True
                 
                 elif dados[0][0] == 'NUM' and dados[1][0] == 'VAR':
                     salvarOuPegarVariavel(dados[1][1], dados[0][1])
+                    atribuirVariavel(dados[1][1], variaveis_data, data, dados[0][1])
+
+                    data, codigo_final, n_const = atribuir_valor(
+                        ('NUM', dados[0][1]), n_const, data, codigo_final
+                    )
+                    dest = f'D{n_const-1}'
+                    codigo_final.append(f'LDR R4, ={dados[1][1]}')
+                    codigo_final.append(f'VSTR.F64 {dest}, [R4]')
+                    exp_result[exp] = dest
                     eh_variavel = True
 
                 elif dados[0][0] == 'NUM' and dados[1][0] == 'CE':
@@ -314,11 +348,12 @@ def gerarAssembly(expressao):
                     )
                     op1 = f'D{n_const-1}'
                 elif operando_a[0] == 'VAR':
-                    value = salvarOuPegarVariavel(operando_a[1], None)
-                    data, codigo_final, n_const = atribuir_valor(
-                        value, n_const, data, codigo_final
-                    )
-                    op1 = f'D{n_const-1}'
+                    value = salvarOuPegarVariavel(operando_a[1], None)[1]
+                    atribuirVariavel(operando_a[1], variaveis_data, data, value)
+                    codigo_final.append(f'LDR R4, ={operando_a[1]}')
+                    codigo_final.append(f'VLDR.F64 D{n_const}, [R4]')
+                    op1 = f'D{n_const}'
+                    n_const += 1
                 else:
                     #pega o resultado da exp resolvida
                     op1 = exp_result[operando_a[1]]
@@ -330,11 +365,12 @@ def gerarAssembly(expressao):
                         )
                         op2 = f'D{n_const-1}'
                     elif operando_b[0] == 'VAR':
-                        value = salvarOuPegarVariavel(operando_b[1], None)
-                        data, codigo_final, n_const = atribuir_valor(
-                            value, n_const, data, codigo_final
-                        )
-                        op2 = f'D{n_const-1}'
+                        value = salvarOuPegarVariavel(operando_b[1], None)[1]
+                        atribuirVariavel(operando_b[1], variaveis_data, data, value)
+                        codigo_final.append(f'LDR R4, ={operando_b[1]}')
+                        codigo_final.append(f'VLDR.F64 D{n_const}, [R4]')
+                        op2 = f'D{n_const}'
+                        n_const += 1
                     else:
                         #pega o resultado da exp resolvida
                         op2 = exp_result[operando_b[1]]
