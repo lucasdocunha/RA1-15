@@ -9,6 +9,7 @@
 variaveis = {}
 historico_linha = []
 # salvar/pegar variaveis globais
+# atua a nivel de token
 def salvarOuPegarVariavel(nome, valor):
     if valor is not None:
         variaveis[nome] = valor
@@ -18,7 +19,7 @@ def salvarOuPegarVariavel(nome, valor):
         variaveis[nome] = '0.0'
 
     return ['NUM', variaveis[nome]]
-    
+# atua a nivel de assembly
 def atribuirVariavel(nome, variaveis_data: set, data: list, valor_inicial='0.0'):
     if nome not in variaveis_data:
         data.append(f'{nome}: .double {valor_inicial}')
