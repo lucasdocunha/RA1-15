@@ -257,11 +257,16 @@ def salvarArquivo(nome_arquivo:str, conteudo):
 
 
 def salvar_tokens_txt(linhas_tokens: list[str]) -> None:
-    """Grava tokens.txt: uma linha por expressão, só o formato 'Linha N: [...]'."""
+    """Grava só tokens.txt: uma linha por expressão — 'Linha N - …' ou 'Linha N - inválido'."""
     salvarArquivo(
         "tokens.txt",
         "\n".join(linhas_tokens) + ("\n" if linhas_tokens else ""),
     )
+
+
+def salvar_assembly_txt(conteudo: str) -> None:
+    """Grava só o assembly (arquivo separado de tokens.txt)."""
+    salvarArquivo("saida.txt", conteudo)
         
 def gerarAssembly(expressao):    
     
@@ -665,21 +670,32 @@ if __name__ == ("__main__"):
     lista_tokens = []
     linhas_tokens = []
 
+    if not linhas:
+        linhas_tokens.append("Linha 1 - inválido")
+
     for idx, linha in enumerate(linhas):
         tokens, erro = parseExpressao(linha)
-        linhas_tokens.append(f"Linha {idx+1}: {tokens}")
 
         print(f"\nLinha {idx+1}: {tokens}")
         if erro:
-            print(f"Linha inválida!")
-        else:
-            ordem, erro = executarExpressao(tokens, linha_idx=idx)
-            if erro:
-                print(f"Linha inválida!")
-            else:
-                print(f"Ordem de execução: {ordem}")
-                lista_tokens.append(ordem)
+            print("Linha inválida! (léxico) — ignorada.")
+            linhas_tokens.append(f"Linha {idx+1} - inválido")
+            continue
+
+        ordem, erro = executarExpressao(tokens, linha_idx=idx)
+        if erro:
+            print("Linha inválida! (estrutura) — ignorada.")
+            linhas_tokens.append(f"Linha {idx+1} - inválido")
+            continue
+
+        print(f"Ordem de execução: {ordem}")
+        lista_tokens.append(ordem)
+        linhas_tokens.append(f"Linha {idx+1} - {tokens}")
     print("\nExpressões processadas:")
     print(lista_tokens)
+
     salvar_tokens_txt(linhas_tokens)
-    salvarArquivo('saida.txt', gerarAssembly(lista_tokens))
+    if not lista_tokens:
+        salvar_assembly_txt("")
+    else:
+        salvar_assembly_txt(gerarAssembly(lista_tokens))
