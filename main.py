@@ -2,8 +2,6 @@
 # Tiago de Brito Follador - TiagoFollador
 # Grupo 15  
 
-#TODO: verificar se o led não está ligando errado na última casa decimal
-#TODO: tem que fazer a parte das variáveis funcionarem como no teste1 -> agr não tá indo
 
 variaveis = {}
 historico_linha = []
@@ -13,8 +11,7 @@ MAX_D = 16
 def regD(indice: int):
     return f'D{indice % (MAX_D)}'
 
-# salvar/pegar variaveis globais
-# atua a nivel de token
+# Salvar/pegar variáveis globais; atua ao nível de token.
 def salvarOuPegarVariavel(nome, valor):
     if valor is not None:
         variaveis[nome] = valor
@@ -52,7 +49,7 @@ def parenteses(z):
         return True
     return False
 
-#estados:
+# Estados do AFD
 def estadoNumero(entrada, i):
     numero = ""
     real = False
@@ -76,32 +73,33 @@ def estadoNumero(entrada, i):
         
         i = i + 1      
     
-    #numero não pode ser só ., não pode começar ou terminar com .
+    # Número inválido: só ".", começa ou termina com "."
     if numero == "." or numero[0] == "." or numero[-1] == ".":
         erro = True
     
     return ('NUM', numero), i, erro 
             
 def estadoComandoEspeciais(entrada, i):
+    """RES (keyword) ou identificador VAR: maiúsculas e, depois da 1.ª letra, também dígitos (ex.: TESTE2)."""
     palavra = ""
     erro = False
-    while i < len(entrada):
-        #pega até não ser mais maiusculo
-        if entrada[i].isupper():
-            palavra += entrada[i]
-            i += 1 
-        else: 
-            break
-    
-    #CE -> Comando especial
-    #VAR -> Variável
+    if i >= len(entrada) or not entrada[i].isupper():
+        return ("VAR", ""), i, True
+    palavra += entrada[i]
+    i += 1
+    while i < len(entrada) and (entrada[i].isupper() or entrada[i].isdigit()):
+        palavra += entrada[i]
+        i += 1
+
+    # CE -> Comando especial; VAR -> variável (nome com letras maiúsculas e opcionalmente dígitos)
     return (("CE", palavra) if palavra == "RES" else ("VAR", palavra)), i, erro
             
 def estadoOperador(entrada, i):
     erro = False
     if operacoes(entrada[i]):
         if operacoes(entrada[i:i+2]):
-            return ("OP", entrada[i:i+2]), i+2, erro #verificação do //
+            # Verificação do //
+            return ("OP", entrada[i:i+2]), i+2, erro
         return ("OP", entrada[i]), i + 1, erro
 
 def estadoParenteses(entrada, i):
@@ -109,10 +107,10 @@ def estadoParenteses(entrada, i):
     erro = False
     if parenteses(p):
         if p == "(":
-            #PI -> parenteses inicial
+            # PI: parêntese inicial
             return ("PI", p), i + 1, erro
         else:
-            #PF -> parenteses final
+            # PF: parêntese final
             return ("PF", p), i + 1, erro
 
 def parseExpressao(linha) -> list[str]:
@@ -156,7 +154,7 @@ def validarSubexpressao(expr, linha_idx):
     """
     Valida um bloco entre parênteses (já em ordem RPN interna).
     - (MEM): um token VAR
-    - (V MEM): NUM + VAR
+    - (V MEM): NUM + VAR ou EXP + VAR (valor da subexpressão guardado em VAR)
     - (N RES): NUM (inteiro N >= 0) + CE RES; exige linha alvo existente (N linhas acima)
     - (A B op): três tokens, último OP
     """
@@ -172,7 +170,7 @@ def validarSubexpressao(expr, linha_idx):
     if n == 2:
         t0, t1 = expr[0], expr[1]
         
-        #valido se é RES
+        # (N RES)
         if t1[0] == "CE" and t1[1] == "RES":
             #o primeiro token deve ser um número
             if t0[0] != "NUM":
@@ -188,7 +186,7 @@ def validarSubexpressao(expr, linha_idx):
                 return False
 
             n_linhas = int(n_val)
-            # resultado da expressão N linhas anteriores: precisa haver linha alvo
+            # Tem de existir linha alvo (N linhas acima)
             if n_linhas < 1:
                 return False
 
@@ -196,8 +194,8 @@ def validarSubexpressao(expr, linha_idx):
             alvo = linha_idx - n_linhas
             return alvo >= 0
 
-        #valido se é um número e uma variável
-        if t0[0] == "NUM" and t1[0] == "VAR":
+        # (NUM VAR) ou (EXP VAR): atribuir literal ou resultado de subexpressão à variável
+        if t1[0] == "VAR" and t0[0] in ("NUM", "EXP"):
             return True
 
         return False
@@ -250,13 +248,19 @@ def executarExpressao(tokens, linha_idx=0):
     return ordem, erro
     
 
-def lerArquivo(nome_arquivo:str):
+def lerArquivo(nome_arquivo: str):
+    import sys
+
     try:
         with open(nome_arquivo, "r", encoding="utf-8") as f:
             return f.readlines()
-    except Exception as e:
-        print(f"Não foi possível abrir o arquivo {nome_arquivo} - erro: {e}")
-        
+    except OSError as e:
+        sys.stderr.write(f"Erro ao abrir {nome_arquivo}: {e}\n")
+        return None
+    except UnicodeDecodeError as e:
+        sys.stderr.write(f"Erro de encoding em {nome_arquivo}: {e}\n")
+        return None
+
 def salvarArquivo(nome_arquivo:str, conteudo):
     with open(nome_arquivo, "w", encoding="utf-8") as f:
         f.write(conteudo)
@@ -300,8 +304,7 @@ def gerarAssembly(expressao):
         codigo_final.append(f"RES_LINHA_{linhas}: .double 0.0")
 
         for exp, dados in tokens.items():
-            print(exp, dados)
-            #é uma expressão já resolvida
+            # Bloco já fechado (leitura de VAR, atribuição, RES, etc.)
             eh_variavel = False
 
             if len(dados) == 1 and dados[0][0] == 'VAR':
@@ -341,6 +344,16 @@ def gerarAssembly(expressao):
                     exp_result[exp] = dest
                     eh_variavel = True
 
+                elif dados[0][0] == 'EXP' and dados[1][0] == 'VAR':
+                    nome_var = dados[1][1]
+                    salvarOuPegarVariavel(nome_var, "0.0")
+                    atribuirVariavel(nome_var, variaveis_data, data, "0.0")
+                    dest = exp_result[dados[0][1]]
+                    codigo_final.append(f'LDR R4, ={nome_var}')
+                    codigo_final.append(f'VSTR.F64 {dest}, [R4]')
+                    exp_result[exp] = dest
+                    eh_variavel = True
+
                 elif dados[0][0] == 'NUM' and dados[1][0] == 'CE':
                     if dados[1][1] == 'RES':
                         dest = regD(n_const)
@@ -356,8 +369,7 @@ def gerarAssembly(expressao):
                     operando_b = None
                     operador = dados[1]
             else:
-                #expressão não resolvida
-                # print(dados)
+                # Operação binária (A B op)
                 operando_a, operando_b, operador = dados
             
             if not eh_variavel:
@@ -374,7 +386,7 @@ def gerarAssembly(expressao):
                     op1 = regD(n_const)
                     n_const += 1
                 else:
-                    #pega o resultado da exp resolvida
+                    # Operando = subexpressão já gerada
                     op1 = exp_result[operando_a[1]]
 
                 if operando_b:
@@ -391,7 +403,6 @@ def gerarAssembly(expressao):
                         op2 = regD(n_const)
                         n_const += 1
                     else:
-                        #pega o resultado da exp resolvida
                         op2 = exp_result[operando_b[1]]
 
                 # operação
@@ -405,16 +416,14 @@ def gerarAssembly(expressao):
                     exp_result[exp] = dest
                     n_const += 1
 
-        #passo para o registrador final
-        print(exp_result.values())
+        # Guarda resultado da linha em RES_LINHA_*
         final_reg = list(exp_result.values())[-1] if len(exp_result) > 0 else ''
         codigo_final.append(f'VMOV R3, R2, {final_reg}')
         codigo_final.append(f'LDR R4, =RES_LINHA_{linhas}')
         codigo_final.append(f'VSTR.F64 {final_reg}, [R4]')
         salvarHistorico(f"RES_LINHA_{linhas}")
-        
-            
-    #passo para o registrador final
+
+    # Última linha: valor final -> display
     final_reg = list(exp_result.values())[-1]
     codigo_final.append(f'VMOV R3, R2, {final_reg}')
     codigo_final.append(mover_numeros_para_display(final_reg))
@@ -463,6 +472,7 @@ def potencia(n_const, op1, op2, dest):
     label_end  = f"pow_end_{n_const}"
 
     return f"""
+        @ potência (^), expoente inteiro em R0
         VCVT.S32.F64 S0, {op2} 
         VMOV R0, S0
 
@@ -483,34 +493,57 @@ def potencia(n_const, op1, op2, dest):
 
 def resto(op1, op2, dest):
     return f"""
-        @ quociente em double
+        @ resto (%)
         VDIV.F64 D10, {op1}, {op2}
-
-        @ parte inteira do quociente
         VCVT.S32.F64 S10, D10
-
-        @ volta pra double
         VCVT.F64.S32 D11, S10
-
-        @ multiplica pelo divisor
         VMUL.F64 D11, D11, {op2}
-
-        @ resto = op1 - (quociente * op2)
         VSUB.F64 {dest}, {op1}, D11
     """
 
 def divisao_inteira(op1, op2, dest):
     return f"""
+        @ divisão inteira (//)
         VDIV.F64 {dest}, {op1}, {op2}
         VCVT.S32.F64 S0, {dest}
         VCVT.F64.S32 {dest}, S0
     """
     
 def exibirResultados(resultados):
-    pass
+    print("\n" + "=" * 60)
+    print("RESULTADOS")
+    print("=" * 60)
+    if not resultados:
+        print("Nenhuma linha processada.")
+        print("=" * 60)
+        return
+
+    print(
+        "Valores numéricos não são calculados em Python; "
+        "confira o display no Cpulator (sugestão: uma casa decimal)."
+    )
+    print("-" * 60)
+    n_ok = 0
+    for num_linha, ordem, estado in resultados:
+        if estado == "ok":
+            n_ok += 1
+            chaves = ", ".join(
+                sorted(ordem.keys(), key=lambda k: int(k.replace("EXP", "") or 0))
+            )
+            print(f"  Linha {num_linha:3d}  →  compilada  |  blocos: {chaves}")
+        elif estado == "vazio":
+            print(f"  Linha {num_linha:3d}  →  vazio     |  blocos: —")
+        elif estado in ("erro_lexico", "erro_estrutura", "vazio_arquivo"):
+            print(f"  Linha {num_linha:3d}  →  ERRO      |  blocos: ERRO")
+        else:
+            print(f"  Linha {num_linha:3d}  →  ERRO      |  blocos: ERRO")
+    print("-" * 60)
+    print(f"Total: {n_ok} linha(s) com expressão válida.")
+    print("=" * 60)
 
 def digitos_display():
     return"""digitos:
+    @ padrões 7 seg, índice 0..9
     .word 0x3F @ 0
     .word 0x06 @ 1
     .word 0x5B @ 2
@@ -524,19 +557,9 @@ def digitos_display():
     """
     
 def mover_numeros_para_display(final_d_reg):
-    """
-    Registradores fixos (GPR): R0–R1 temporários, R2–R3 MMIO, R4 ponteiro (.data),
-    R6 máscara sinal, R8 inteiro |x|, R9 1ª decimal, R5 milhar, R10–R12 cent/dez/uni.
-    Copia o resultado para D14 e usa D10–D13, D15 só neste bloco.
-    Ordem física da placa (esquerda → direita): HEX5 … HEX0 = sinal+milhar | cent | dez | uni | . | dec
-    0xFF200020: HEX0..3; 0xFF200030: HEX4..5 (HEX5 = dígito do milhar OR máscara de sinal).
-    Se |x| > 9999.9, exibe ±9999.9.
-    """
     return f"""
-    @ cópia para área fixa do display (D14); literais via R4
+    @ resultado -> D14, depois HEX
     VMOV.F64 D14, {final_d_reg}
-
-    @ se |x| > 9999.9 -> copysign(9999.9, x)
     LDR R4, =fp_zero
     VLDR.F64 D15, [R4]
     MOV R1, #0
@@ -545,6 +568,7 @@ def mover_numeros_para_display(final_d_reg):
     MOVLT R1, #1
 
     VABS.F64 D13, D14
+    @ satura |x| > 9999.9
     LDR R4, =max_disp
     VLDR.F64 D16, [R4]
     VCMPE.F64 D13, D16
@@ -558,13 +582,13 @@ def mover_numeros_para_display(final_d_reg):
     VNEG.F64 D14, D14
 disp_apos_clamp:
 
-    @ === FPSCR: truncar (round toward zero) ===
+    @ FPSCR: truncar p/ inteiro
     VMRS R0, FPSCR
     BIC  R0, R0, #0x00C00000
     ORR  R0, R0, #0x00C00000
     VMSR FPSCR, R0
 
-    @ sinal (negativo < 0.0), máscara 0x40 = segmento '-'
+    @ sinal (negativo)
     LDR R4, =fp_zero
     VLDR.F64 D15, [R4]
     VCMPE.F64 D14, D15
@@ -572,13 +596,12 @@ disp_apos_clamp:
     MOV R6, #0
     MOVLT R6, #0x40
 
-    @ parte inteira da magnitude |x| (trunc RZ)
+    @ parte inteira (|x|)
     VABS.F64 D13, D14
     VCVT.S32.F64 S10, D13
     VMOV R8, S10
 
-    @ 1ª decimal: dec = trunc(|x|*10 + eps) - trunc(|x|)*10
-    @ (evita frac = |x| - int(|x|), que vira 0.3999... e 10*frac -> 3 em vez de 4)
+    @ 1ª casa decimal
     LDR R4, =dez
     VLDR.F64 D12, [R4]
     VMUL.F64 D11, D13, D12
@@ -591,7 +614,7 @@ disp_apos_clamp:
     MUL R0, R8, R1
     SUB R9, R9, R0
 
-    @ === FPSCR: volta round to nearest ===
+    @ FPSCR: arredondar
     VMRS R0, FPSCR
     BIC  R0, R0, #0x00C00000
     VMSR FPSCR, R0
@@ -604,6 +627,7 @@ disp_apos_clamp:
     MOV R5, #0
     MOV R12, R8
 
+    @ decompor milhar/cent/dez/uni
 disp_mil_loop:
     CMP R12, #1000
     BLT disp_cent_loop
@@ -631,8 +655,7 @@ disp_dez_sub:
 
 disp_seg_digitos:
     LDR R4, =digitos
-
-    @ HEX0..3: dec _ uni dez  (direita: 7 _ 6 5 em -456.7)
+    @ HEX0..3
     LDR R2, =0xFF200020
     MOV R3, #0
     LDR R0, [R4, R9, LSL #2]
@@ -644,8 +667,7 @@ disp_seg_digitos:
     LDR R0, [R4, R11, LSL #2]
     ORR R3, R3, R0, LSL #24
     STR R3, [R2]
-
-    @ HEX4..5: cent | (milhar + sinal em HEX5)
+    @ HEX4..5
     LDR R2, =0xFF200030
     MOV R3, #0
     LDR R0, [R4, R10, LSL #2]
@@ -657,51 +679,106 @@ disp_seg_digitos:
     """
     
 
+def testar_lexico_valido():
+    t, e = parseExpressao("(3.14 2.0 +)")
+    assert not e
+    assert t == [
+        ("PI", "("),
+        ("NUM", "3.14"),
+        ("NUM", "2.0"),
+        ("OP", "+"),
+        ("PF", ")"),
+    ]
+    t, e = parseExpressao("(MEM)")
+    assert not e and t == [("PI", "("), ("VAR", "MEM"), ("PF", ")")]
+
+
+def testar_lexico_invalido():
+    assert parseExpressao("(3.14 2.0 &)")[1]
+    assert parseExpressao("(3.14.5 2 +)")[1]
+    assert parseExpressao("(3,45 2 +)")[1]
+
+
+def testar_estrutura():
+    t, _ = parseExpressao("(3.14 2.0 +)")
+    o, e = executarExpressao(t, linha_idx=0)
+    assert not e and "EXP0" in o
+    t, _ = parseExpressao("(1 2 +")
+    assert executarExpressao(t, linha_idx=0)[1]
+
+
+def testar_assembly_minimo():
+    variaveis.clear()
+    historico_linha.clear()
+    t, _ = parseExpressao("(1.0 2.0 +)")
+    o, err = executarExpressao(t, linha_idx=0)
+    assert not err
+    asm = gerarAssembly([o])
+    assert ".global _start" in asm and "VADD.F64" in asm
+
+
+def rodar_testes_locais():
+    testar_lexico_valido()
+    testar_lexico_invalido()
+    testar_estrutura()
+    testar_assembly_minimo()
+    print("testes locais: ok")
+
+
 if __name__ == ("__main__"):
     import argparse
     import sys
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "filename", 
-        type=str,
-    )
-    args = parser.parse_args()
-    arquivo = args.filename
-
-    linhas = lerArquivo(arquivo)
-    if linhas is None:
-        sys.exit(1)
-
-    lista_tokens = []
-    linhas_tokens = []
-
-    if not linhas:
-        linhas_tokens.append("Linha 1 - inválido")
-
-    for idx, linha in enumerate(linhas):
-        tokens, erro = parseExpressao(linha)
-
-        print(f"\nLinha {idx+1}: {tokens}")
-        if erro:
-            print("Linha inválida! (léxico) — ignorada.")
-            linhas_tokens.append(f"Linha {idx+1} - inválido")
-            continue
-
-        ordem, erro = executarExpressao(tokens, linha_idx=idx)
-        if erro:
-            print("Linha inválida! (estrutura) — ignorada.")
-            linhas_tokens.append(f"Linha {idx+1} - inválido")
-            continue
-
-        print(f"Ordem de execução: {ordem}")
-        lista_tokens.append(ordem)
-        linhas_tokens.append(f"Linha {idx+1} - {tokens}")
-    print("\nExpressões processadas:")
-    print(lista_tokens)
-
-    salvar_tokens_txt(linhas_tokens)
-    if not lista_tokens:
-        salvar_assembly_txt("")
+    if len(sys.argv) > 1 and sys.argv[1] == "--test":
+        rodar_testes_locais()
     else:
-        salvar_assembly_txt(gerarAssembly(lista_tokens))
+        parser = argparse.ArgumentParser()
+        parser.add_argument(
+            "filename",
+            type=str,
+        )
+        args = parser.parse_args()
+        arquivo = args.filename
+
+        linhas = lerArquivo(arquivo)
+        if linhas is None:
+            sys.exit(1)
+
+        lista_tokens = []
+        linhas_tokens = []
+        resultados_exibir = []
+
+        if not linhas:
+            linhas_tokens.append("Linha 1 - inválido")
+            resultados_exibir.append((1, None, "vazio_arquivo"))
+
+        for idx, linha in enumerate(linhas):
+            if not linha.strip():
+                resultados_exibir.append((idx + 1, None, "vazio"))
+                linhas_tokens.append(f"Linha {idx+1} - vazio")
+                continue
+
+            tokens, erro = parseExpressao(linha)
+
+            if erro:
+                resultados_exibir.append((idx + 1, None, "erro_lexico"))
+                linhas_tokens.append(f"Linha {idx+1} - inválido")
+                continue
+
+            ordem, erro = executarExpressao(tokens, linha_idx=idx)
+            if erro:
+                resultados_exibir.append((idx + 1, None, "erro_estrutura"))
+                linhas_tokens.append(f"Linha {idx+1} - inválido")
+                continue
+
+            lista_tokens.append(ordem)
+            resultados_exibir.append((idx + 1, ordem, "ok"))
+            linhas_tokens.append(f"Linha {idx+1} - {tokens}")
+
+        exibirResultados(resultados_exibir)
+
+        salvar_tokens_txt(linhas_tokens)
+        if not lista_tokens:
+            salvar_assembly_txt("")
+        else:
+            salvar_assembly_txt(gerarAssembly(lista_tokens))
