@@ -2,8 +2,6 @@
 # Tiago de Brito Follador - TiagoFollador
 # Grupo 15  
 
-#TODO: verificar se o led não está ligando errado na última casa decimal
-#TODO: tem que fazer a parte das variáveis funcionarem como no teste1 -> agr não tá indo
 
 variaveis = {}
 historico_linha = []
@@ -83,18 +81,18 @@ def estadoNumero(entrada, i):
     return ('NUM', numero), i, erro 
             
 def estadoComandoEspeciais(entrada, i):
+    """RES (keyword) ou identificador VAR: maiúsculas e, depois da 1.ª letra, também dígitos (ex.: TESTE2)."""
     palavra = ""
     erro = False
-    while i < len(entrada):
-        #pega até não ser mais maiusculo
-        if entrada[i].isupper():
-            palavra += entrada[i]
-            i += 1 
-        else: 
-            break
-    
-    #CE -> Comando especial
-    #VAR -> Variável
+    if i >= len(entrada) or not entrada[i].isupper():
+        return ("VAR", ""), i, True
+    palavra += entrada[i]
+    i += 1
+    while i < len(entrada) and (entrada[i].isupper() or entrada[i].isdigit()):
+        palavra += entrada[i]
+        i += 1
+
+    # CE -> Comando especial; VAR -> variável (nome com letras maiúsculas e opcionalmente dígitos)
     return (("CE", palavra) if palavra == "RES" else ("VAR", palavra)), i, erro
             
 def estadoOperador(entrada, i):
@@ -156,7 +154,7 @@ def validarSubexpressao(expr, linha_idx):
     """
     Valida um bloco entre parênteses (já em ordem RPN interna).
     - (MEM): um token VAR
-    - (V MEM): NUM + VAR
+    - (V MEM): NUM + VAR ou EXP + VAR (valor da subexpressão guardado em VAR)
     - (N RES): NUM (inteiro N >= 0) + CE RES; exige linha alvo existente (N linhas acima)
     - (A B op): três tokens, último OP
     """
@@ -196,8 +194,8 @@ def validarSubexpressao(expr, linha_idx):
             alvo = linha_idx - n_linhas
             return alvo >= 0
 
-        #valido se é um número e uma variável
-        if t0[0] == "NUM" and t1[0] == "VAR":
+        # (NUM VAR) ou (EXP VAR): atribuir literal ou resultado de subexpressão à variável
+        if t1[0] == "VAR" and t0[0] in ("NUM", "EXP"):
             return True
 
         return False
@@ -250,13 +248,19 @@ def executarExpressao(tokens, linha_idx=0):
     return ordem, erro
     
 
-def lerArquivo(nome_arquivo:str):
+def lerArquivo(nome_arquivo: str):
+    import sys
+
     try:
         with open(nome_arquivo, "r", encoding="utf-8") as f:
             return f.readlines()
-    except Exception as e:
-        print(f"Não foi possível abrir o arquivo {nome_arquivo} - erro: {e}")
-        
+    except OSError as e:
+        sys.stderr.write(f"Erro ao abrir {nome_arquivo}: {e}\n")
+        return None
+    except UnicodeDecodeError as e:
+        sys.stderr.write(f"Erro de encoding em {nome_arquivo}: {e}\n")
+        return None
+
 def salvarArquivo(nome_arquivo:str, conteudo):
     with open(nome_arquivo, "w", encoding="utf-8") as f:
         f.write(conteudo)
@@ -300,7 +304,6 @@ def gerarAssembly(expressao):
         codigo_final.append(f"RES_LINHA_{linhas}: .double 0.0")
 
         for exp, dados in tokens.items():
-            print(exp, dados)
             #é uma expressão já resolvida
             eh_variavel = False
 
@@ -341,6 +344,16 @@ def gerarAssembly(expressao):
                     exp_result[exp] = dest
                     eh_variavel = True
 
+                elif dados[0][0] == 'EXP' and dados[1][0] == 'VAR':
+                    nome_var = dados[1][1]
+                    salvarOuPegarVariavel(nome_var, "0.0")
+                    atribuirVariavel(nome_var, variaveis_data, data, "0.0")
+                    dest = exp_result[dados[0][1]]
+                    codigo_final.append(f'LDR R4, ={nome_var}')
+                    codigo_final.append(f'VSTR.F64 {dest}, [R4]')
+                    exp_result[exp] = dest
+                    eh_variavel = True
+
                 elif dados[0][0] == 'NUM' and dados[1][0] == 'CE':
                     if dados[1][1] == 'RES':
                         dest = regD(n_const)
@@ -356,8 +369,7 @@ def gerarAssembly(expressao):
                     operando_b = None
                     operador = dados[1]
             else:
-                #expressão não resolvida
-                # print(dados)
+                # expressão não resolvida
                 operando_a, operando_b, operador = dados
             
             if not eh_variavel:
@@ -405,8 +417,7 @@ def gerarAssembly(expressao):
                     exp_result[exp] = dest
                     n_const += 1
 
-        #passo para o registrador final
-        print(exp_result.values())
+        # passo para o registrador final
         final_reg = list(exp_result.values())[-1] if len(exp_result) > 0 else ''
         codigo_final.append(f'VMOV R3, R2, {final_reg}')
         codigo_final.append(f'LDR R4, =RES_LINHA_{linhas}')
@@ -507,7 +518,42 @@ def divisao_inteira(op1, op2, dest):
     """
     
 def exibirResultados(resultados):
-    pass
+    """
+    Exibe um resumo por linha do ficheiro.
+    resultados: lista de (num_linha, ordem | None, estado)
+      estado: "ok" | "erro_lexico" | "erro_estrutura" | "vazio" | "vazio_arquivo"
+    Em erro (léxico ou estrutura), a coluna blocos mostra ERRO.
+    """
+    print("\n" + "=" * 60)
+    print("RESULTADOS")
+    print("=" * 60)
+    if not resultados:
+        print("Nenhuma linha processada.")
+        print("=" * 60)
+        return
+
+    print(
+        "Valores numéricos não são calculados em Python; "
+        "confira o display no Cpulator (sugestão: uma casa decimal)."
+    )
+    print("-" * 60)
+    n_ok = 0
+    for num_linha, ordem, estado in resultados:
+        if estado == "ok":
+            n_ok += 1
+            chaves = ", ".join(
+                sorted(ordem.keys(), key=lambda k: int(k.replace("EXP", "") or 0))
+            )
+            print(f"  Linha {num_linha:3d}  →  compilada  |  blocos: {chaves}")
+        elif estado == "vazio":
+            print(f"  Linha {num_linha:3d}  →  vazio     |  blocos: —")
+        elif estado in ("erro_lexico", "erro_estrutura", "vazio_arquivo"):
+            print(f"  Linha {num_linha:3d}  →  ERRO      |  blocos: ERRO")
+        else:
+            print(f"  Linha {num_linha:3d}  →  ERRO      |  blocos: ERRO")
+    print("-" * 60)
+    print(f"Total: {n_ok} linha(s) com expressão válida.")
+    print("=" * 60)
 
 def digitos_display():
     return"""digitos:
@@ -657,51 +703,106 @@ disp_seg_digitos:
     """
     
 
+def testar_lexico_valido():
+    t, e = parseExpressao("(3.14 2.0 +)")
+    assert not e
+    assert t == [
+        ("PI", "("),
+        ("NUM", "3.14"),
+        ("NUM", "2.0"),
+        ("OP", "+"),
+        ("PF", ")"),
+    ]
+    t, e = parseExpressao("(MEM)")
+    assert not e and t == [("PI", "("), ("VAR", "MEM"), ("PF", ")")]
+
+
+def testar_lexico_invalido():
+    assert parseExpressao("(3.14 2.0 &)")[1]
+    assert parseExpressao("(3.14.5 2 +)")[1]
+    assert parseExpressao("(3,45 2 +)")[1]
+
+
+def testar_estrutura():
+    t, _ = parseExpressao("(3.14 2.0 +)")
+    o, e = executarExpressao(t, linha_idx=0)
+    assert not e and "EXP0" in o
+    t, _ = parseExpressao("(1 2 +")
+    assert executarExpressao(t, linha_idx=0)[1]
+
+
+def testar_assembly_minimo():
+    variaveis.clear()
+    historico_linha.clear()
+    t, _ = parseExpressao("(1.0 2.0 +)")
+    o, err = executarExpressao(t, linha_idx=0)
+    assert not err
+    asm = gerarAssembly([o])
+    assert ".global _start" in asm and "VADD.F64" in asm
+
+
+def rodar_testes_locais():
+    testar_lexico_valido()
+    testar_lexico_invalido()
+    testar_estrutura()
+    testar_assembly_minimo()
+    print("testes locais: ok")
+
+
 if __name__ == ("__main__"):
     import argparse
     import sys
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "filename", 
-        type=str,
-    )
-    args = parser.parse_args()
-    arquivo = args.filename
-
-    linhas = lerArquivo(arquivo)
-    if linhas is None:
-        sys.exit(1)
-
-    lista_tokens = []
-    linhas_tokens = []
-
-    if not linhas:
-        linhas_tokens.append("Linha 1 - inválido")
-
-    for idx, linha in enumerate(linhas):
-        tokens, erro = parseExpressao(linha)
-
-        print(f"\nLinha {idx+1}: {tokens}")
-        if erro:
-            print("Linha inválida! (léxico) — ignorada.")
-            linhas_tokens.append(f"Linha {idx+1} - inválido")
-            continue
-
-        ordem, erro = executarExpressao(tokens, linha_idx=idx)
-        if erro:
-            print("Linha inválida! (estrutura) — ignorada.")
-            linhas_tokens.append(f"Linha {idx+1} - inválido")
-            continue
-
-        print(f"Ordem de execução: {ordem}")
-        lista_tokens.append(ordem)
-        linhas_tokens.append(f"Linha {idx+1} - {tokens}")
-    print("\nExpressões processadas:")
-    print(lista_tokens)
-
-    salvar_tokens_txt(linhas_tokens)
-    if not lista_tokens:
-        salvar_assembly_txt("")
+    if len(sys.argv) > 1 and sys.argv[1] == "--test":
+        rodar_testes_locais()
     else:
-        salvar_assembly_txt(gerarAssembly(lista_tokens))
+        parser = argparse.ArgumentParser()
+        parser.add_argument(
+            "filename",
+            type=str,
+        )
+        args = parser.parse_args()
+        arquivo = args.filename
+
+        linhas = lerArquivo(arquivo)
+        if linhas is None:
+            sys.exit(1)
+
+        lista_tokens = []
+        linhas_tokens = []
+        resultados_exibir = []
+
+        if not linhas:
+            linhas_tokens.append("Linha 1 - inválido")
+            resultados_exibir.append((1, None, "vazio_arquivo"))
+
+        for idx, linha in enumerate(linhas):
+            if not linha.strip():
+                resultados_exibir.append((idx + 1, None, "vazio"))
+                linhas_tokens.append(f"Linha {idx+1} - vazio")
+                continue
+
+            tokens, erro = parseExpressao(linha)
+
+            if erro:
+                resultados_exibir.append((idx + 1, None, "erro_lexico"))
+                linhas_tokens.append(f"Linha {idx+1} - inválido")
+                continue
+
+            ordem, erro = executarExpressao(tokens, linha_idx=idx)
+            if erro:
+                resultados_exibir.append((idx + 1, None, "erro_estrutura"))
+                linhas_tokens.append(f"Linha {idx+1} - inválido")
+                continue
+
+            lista_tokens.append(ordem)
+            resultados_exibir.append((idx + 1, ordem, "ok"))
+            linhas_tokens.append(f"Linha {idx+1} - {tokens}")
+
+        exibirResultados(resultados_exibir)
+
+        salvar_tokens_txt(linhas_tokens)
+        if not lista_tokens:
+            salvar_assembly_txt("")
+        else:
+            salvar_assembly_txt(gerarAssembly(lista_tokens))

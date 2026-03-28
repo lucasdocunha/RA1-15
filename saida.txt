@@ -1,0 +1,841 @@
+digitos:
+    .word 0x3F @ 0
+    .word 0x06 @ 1
+    .word 0x5B @ 2
+    .word 0x4F @ 3
+    .word 0x66 @ 4
+    .word 0x6D @ 5
+    .word 0x7D @ 6
+    .word 0x07 @ 7
+    .word 0x7F @ 8
+    .word 0x6F @ 9
+    
+.data
+fp_zero: .double 0.0
+eps_dec: .double 1e-7
+dez: .double 10.0
+um: .double 1.0
+max_disp: .double 9999.9
+const_0: .double 0.0
+const_1: .double 0.0
+const_3: .double 1.0
+const_4: .double 2.0
+const_6: .double 10.0
+const_7: .double 3.5
+const_9: .double 2.5
+const_10: .double 4.0
+const_12: .double 20.0
+const_13: .double 4.0
+const_15: .double 17.0
+const_16: .double 5.0
+const_18: .double 17.0
+const_19: .double 5.0
+const_21: .double 2.0
+const_22: .double 4.0
+const_24: .double 2.0
+const_25: .double 3.0
+const_27: .double 4.0
+const_28: .double 1.0
+const_31: .double 1.0
+const_32: .double 2.0
+const_34: .double 3.0
+const_35: .double 1.0
+const_38: .double 2.0
+const_39: .double 2.0
+const_42: .double 10.0
+const_43: .double 2.0
+const_45: .double 3.0
+const_46: .double 4.0
+A: .double 100.0
+const_49: .double 100.0
+B: .double 200.0
+const_50: .double 200.0
+PI: .double 3.14159
+const_54: .double 3.14159
+const_55: .double 1.0
+const_56: .double 2.0
+ACC: .double 0.0
+BUFFER: .double 50.0
+const_60: .double 50.0
+const_61: .double 2.0
+const_62: .double 3.0
+BUFFER2: .double 0.0
+const_68: .double 1.0
+const_69: .double 1.0
+const_73: .double 1.0
+const_74: .double 2.0
+const_77: .double 3.0
+const_78: .double 4.0
+const_82: .double 0.5
+const_83: .double 0.5
+const_86: .double 10.0
+const_87: .double 2.0
+const_90: .double 2.0
+const_91: .double 3.0
+const_93: .double 4.0
+const_94: .double 1.0
+MEM1: .double 64.0
+const_97: .double 64.0
+const_98: .double 3.0
+const_99: .double 4.0
+MEM2: .double 0.0
+const_103: .double 3.0
+const_104: .double 2.0
+const_106: .double 3.0
+const_107: .double 4.0
+const_110: .double 12.0
+const_111: .double 4.0
+const_113: .double 10.0
+const_114: .double 3.0
+const_116: .double 10.0
+const_117: .double 3.0
+const_119: .double 2.0
+const_120: .double 3.0
+const_122: .double 2.0
+const_123: .double 3.0
+const_125: .double 4.0
+const_126: .double 1.0
+const_129: .double 0.0
+const_130: .double 1.0
+const_132: .double 5000.0
+const_133: .double 5000.0
+const_135: .double 1.0
+const_136: .double 0.0
+const_138: .double 0.0
+const_139: .double 1.0
+const_141: .double 3.0
+const_142: .double 4.0
+const_144: .double 4.0
+const_145: .double 5.0
+const_147: .double 6.0
+const_148: .double 7.0
+XVAR: .double 1.0
+const_153: .double 1.0
+const_154: .double 2.0
+const_155: .double 3.0
+YVAR: .double 0.0
+.text
+.global _start
+_start:
+RES_LINHA_1: .double 0.0
+LDR R4, =const_0
+VLDR.F64 D0, [R4]
+LDR R4, =const_1
+VLDR.F64 D1, [R4]
+VADD.F64 D2, D0, D1
+VMOV R3, R2, D2
+LDR R4, =RES_LINHA_1
+VSTR.F64 D2, [R4]
+RES_LINHA_2: .double 0.0
+LDR R4, =const_3
+VLDR.F64 D3, [R4]
+LDR R4, =const_4
+VLDR.F64 D4, [R4]
+VADD.F64 D5, D3, D4
+VMOV R3, R2, D5
+LDR R4, =RES_LINHA_2
+VSTR.F64 D5, [R4]
+RES_LINHA_3: .double 0.0
+LDR R4, =const_6
+VLDR.F64 D6, [R4]
+LDR R4, =const_7
+VLDR.F64 D7, [R4]
+VSUB.F64 D8, D6, D7
+VMOV R3, R2, D8
+LDR R4, =RES_LINHA_3
+VSTR.F64 D8, [R4]
+RES_LINHA_4: .double 0.0
+LDR R4, =const_9
+VLDR.F64 D9, [R4]
+LDR R4, =const_10
+VLDR.F64 D10, [R4]
+VMUL.F64 D11, D9, D10
+VMOV R3, R2, D11
+LDR R4, =RES_LINHA_4
+VSTR.F64 D11, [R4]
+RES_LINHA_5: .double 0.0
+LDR R4, =const_12
+VLDR.F64 D12, [R4]
+LDR R4, =const_13
+VLDR.F64 D13, [R4]
+VDIV.F64 D14, D12, D13
+VMOV R3, R2, D14
+LDR R4, =RES_LINHA_5
+VSTR.F64 D14, [R4]
+RES_LINHA_6: .double 0.0
+LDR R4, =const_15
+VLDR.F64 D15, [R4]
+LDR R4, =const_16
+VLDR.F64 D0, [R4]
+
+        VDIV.F64 D1, D15, D0
+        VCVT.S32.F64 S0, D1
+        VCVT.F64.S32 D1, S0
+    
+VMOV R3, R2, D1
+LDR R4, =RES_LINHA_6
+VSTR.F64 D1, [R4]
+RES_LINHA_7: .double 0.0
+LDR R4, =const_18
+VLDR.F64 D2, [R4]
+LDR R4, =const_19
+VLDR.F64 D3, [R4]
+
+        @ quociente em double
+        VDIV.F64 D10, D2, D3
+
+        @ parte inteira do quociente
+        VCVT.S32.F64 S10, D10
+
+        @ volta pra double
+        VCVT.F64.S32 D11, S10
+
+        @ multiplica pelo divisor
+        VMUL.F64 D11, D11, D3
+
+        @ resto = op1 - (quociente * op2)
+        VSUB.F64 D4, D2, D11
+    
+VMOV R3, R2, D4
+LDR R4, =RES_LINHA_7
+VSTR.F64 D4, [R4]
+RES_LINHA_8: .double 0.0
+LDR R4, =const_21
+VLDR.F64 D5, [R4]
+LDR R4, =const_22
+VLDR.F64 D6, [R4]
+
+        VCVT.S32.F64 S0, D6 
+        VMOV R0, S0
+
+        LDR R1, =um
+        VLDR.F64 D7, [R1]
+
+        CMP R0, #0
+        BLE pow_end_23
+
+        pow_loop_23:
+        VMUL.F64 D7, D7, D5
+        SUB R0, R0, #1
+        CMP R0, #0
+        BGT pow_loop_23
+
+        pow_end_23:
+    
+VMOV R3, R2, D7
+LDR R4, =RES_LINHA_8
+VSTR.F64 D7, [R4]
+RES_LINHA_9: .double 0.0
+LDR R4, =const_24
+VLDR.F64 D8, [R4]
+LDR R4, =const_25
+VLDR.F64 D9, [R4]
+VADD.F64 D10, D8, D9
+LDR R4, =const_27
+VLDR.F64 D11, [R4]
+LDR R4, =const_28
+VLDR.F64 D12, [R4]
+VSUB.F64 D13, D11, D12
+VMUL.F64 D14, D10, D13
+VMOV R3, R2, D14
+LDR R4, =RES_LINHA_9
+VSTR.F64 D14, [R4]
+RES_LINHA_10: .double 0.0
+LDR R4, =const_31
+VLDR.F64 D15, [R4]
+LDR R4, =const_32
+VLDR.F64 D0, [R4]
+VADD.F64 D1, D15, D0
+LDR R4, =const_34
+VLDR.F64 D2, [R4]
+LDR R4, =const_35
+VLDR.F64 D3, [R4]
+VSUB.F64 D4, D2, D3
+VMUL.F64 D5, D1, D4
+LDR R4, =const_38
+VLDR.F64 D6, [R4]
+LDR R4, =const_39
+VLDR.F64 D7, [R4]
+VDIV.F64 D8, D6, D7
+VADD.F64 D9, D5, D8
+VMOV R3, R2, D9
+LDR R4, =RES_LINHA_10
+VSTR.F64 D9, [R4]
+RES_LINHA_11: .double 0.0
+LDR R4, =const_42
+VLDR.F64 D10, [R4]
+LDR R4, =const_43
+VLDR.F64 D11, [R4]
+VDIV.F64 D12, D10, D11
+LDR R4, =const_45
+VLDR.F64 D13, [R4]
+LDR R4, =const_46
+VLDR.F64 D14, [R4]
+VMUL.F64 D15, D13, D14
+VSUB.F64 D0, D12, D15
+VMOV R3, R2, D0
+LDR R4, =RES_LINHA_11
+VSTR.F64 D0, [R4]
+RES_LINHA_12: .double 0.0
+LDR R4, =const_49
+VLDR.F64 D1, [R4]
+LDR R4, =A
+VSTR.F64 D1, [R4]
+VMOV R3, R2, D1
+LDR R4, =RES_LINHA_12
+VSTR.F64 D1, [R4]
+RES_LINHA_13: .double 0.0
+LDR R4, =const_50
+VLDR.F64 D2, [R4]
+LDR R4, =B
+VSTR.F64 D2, [R4]
+VMOV R3, R2, D2
+LDR R4, =RES_LINHA_13
+VSTR.F64 D2, [R4]
+RES_LINHA_14: .double 0.0
+LDR R4, =A
+VLDR.F64 D3, [R4]
+LDR R4, =B
+VLDR.F64 D4, [R4]
+VADD.F64 D5, D3, D4
+VMOV R3, R2, D5
+LDR R4, =RES_LINHA_14
+VSTR.F64 D5, [R4]
+RES_LINHA_15: .double 0.0
+LDR R4, =const_54
+VLDR.F64 D6, [R4]
+LDR R4, =PI
+VSTR.F64 D6, [R4]
+VMOV R3, R2, D6
+LDR R4, =RES_LINHA_15
+VSTR.F64 D6, [R4]
+RES_LINHA_16: .double 0.0
+LDR R4, =const_55
+VLDR.F64 D7, [R4]
+LDR R4, =const_56
+VLDR.F64 D8, [R4]
+VADD.F64 D9, D7, D8
+LDR R4, =ACC
+VSTR.F64 D9, [R4]
+VMOV R3, R2, D9
+LDR R4, =RES_LINHA_16
+VSTR.F64 D9, [R4]
+RES_LINHA_17: .double 0.0
+LDR R4, =ACC
+VLDR.F64 D10, [R4]
+VMOV R3, R2, D10
+LDR R4, =RES_LINHA_17
+VSTR.F64 D10, [R4]
+RES_LINHA_18: .double 0.0
+LDR R4, =PI
+VLDR.F64 D11, [R4]
+VMOV R3, R2, D11
+LDR R4, =RES_LINHA_18
+VSTR.F64 D11, [R4]
+RES_LINHA_19: .double 0.0
+LDR R4, =const_60
+VLDR.F64 D12, [R4]
+LDR R4, =BUFFER
+VSTR.F64 D12, [R4]
+VMOV R3, R2, D12
+LDR R4, =RES_LINHA_19
+VSTR.F64 D12, [R4]
+RES_LINHA_20: .double 0.0
+LDR R4, =const_61
+VLDR.F64 D13, [R4]
+LDR R4, =const_62
+VLDR.F64 D14, [R4]
+VADD.F64 D15, D13, D14
+LDR R4, =BUFFER2
+VSTR.F64 D15, [R4]
+VMOV R3, R2, D15
+LDR R4, =RES_LINHA_20
+VSTR.F64 D15, [R4]
+RES_LINHA_21: .double 0.0
+LDR R4, =BUFFER
+VLDR.F64 D0, [R4]
+VMOV R3, R2, D0
+LDR R4, =RES_LINHA_21
+VSTR.F64 D0, [R4]
+RES_LINHA_22: .double 0.0
+LDR R4, =BUFFER
+VLDR.F64 D1, [R4]
+LDR R4, =BUFFER2
+VLDR.F64 D2, [R4]
+VADD.F64 D3, D1, D2
+VMOV R3, R2, D3
+LDR R4, =RES_LINHA_22
+VSTR.F64 D3, [R4]
+RES_LINHA_23: .double 0.0
+LDR R4, =const_68
+VLDR.F64 D4, [R4]
+LDR R4, =const_69
+VLDR.F64 D5, [R4]
+VADD.F64 D6, D4, D5
+VMOV R3, R2, D6
+LDR R4, =RES_LINHA_23
+VSTR.F64 D6, [R4]
+RES_LINHA_24: .double 0.0
+LDR R4, =RES_LINHA_23
+VLDR.F64 D7, [R4]
+VMOV R3, R2, D7
+LDR R4, =RES_LINHA_24
+VSTR.F64 D7, [R4]
+RES_LINHA_25: .double 0.0
+LDR R4, =RES_LINHA_24
+VLDR.F64 D8, [R4]
+VMOV R3, R2, D8
+LDR R4, =RES_LINHA_25
+VSTR.F64 D8, [R4]
+RES_LINHA_26: .double 0.0
+LDR R4, =const_73
+VLDR.F64 D9, [R4]
+LDR R4, =const_74
+VLDR.F64 D10, [R4]
+VADD.F64 D11, D9, D10
+VMOV R3, R2, D11
+LDR R4, =RES_LINHA_26
+VSTR.F64 D11, [R4]
+RES_LINHA_27: .double 0.0
+LDR R4, =RES_LINHA_26
+VLDR.F64 D12, [R4]
+VMOV R3, R2, D12
+LDR R4, =RES_LINHA_27
+VSTR.F64 D12, [R4]
+RES_LINHA_28: .double 0.0
+LDR R4, =const_77
+VLDR.F64 D13, [R4]
+LDR R4, =const_78
+VLDR.F64 D14, [R4]
+VADD.F64 D15, D13, D14
+VMOV R3, R2, D15
+LDR R4, =RES_LINHA_28
+VSTR.F64 D15, [R4]
+RES_LINHA_29: .double 0.0
+LDR R4, =RES_LINHA_28
+VLDR.F64 D0, [R4]
+VMOV R3, R2, D0
+LDR R4, =RES_LINHA_29
+VSTR.F64 D0, [R4]
+RES_LINHA_30: .double 0.0
+LDR R4, =RES_LINHA_29
+VLDR.F64 D1, [R4]
+VMOV R3, R2, D1
+LDR R4, =RES_LINHA_30
+VSTR.F64 D1, [R4]
+RES_LINHA_31: .double 0.0
+LDR R4, =const_82
+VLDR.F64 D2, [R4]
+LDR R4, =const_83
+VLDR.F64 D3, [R4]
+VADD.F64 D4, D2, D3
+VMOV R3, R2, D4
+LDR R4, =RES_LINHA_31
+VSTR.F64 D4, [R4]
+RES_LINHA_32: .double 0.0
+LDR R4, =RES_LINHA_31
+VLDR.F64 D5, [R4]
+VMOV R3, R2, D5
+LDR R4, =RES_LINHA_32
+VSTR.F64 D5, [R4]
+RES_LINHA_33: .double 0.0
+LDR R4, =const_86
+VLDR.F64 D6, [R4]
+LDR R4, =const_87
+VLDR.F64 D7, [R4]
+VDIV.F64 D8, D6, D7
+VMOV R3, R2, D8
+LDR R4, =RES_LINHA_33
+VSTR.F64 D8, [R4]
+RES_LINHA_34: .double 0.0
+LDR R4, =RES_LINHA_33
+VLDR.F64 D9, [R4]
+VMOV R3, R2, D9
+LDR R4, =RES_LINHA_34
+VSTR.F64 D9, [R4]
+RES_LINHA_35: .double 0.0
+LDR R4, =const_90
+VLDR.F64 D10, [R4]
+LDR R4, =const_91
+VLDR.F64 D11, [R4]
+VADD.F64 D12, D10, D11
+LDR R4, =const_93
+VLDR.F64 D13, [R4]
+LDR R4, =const_94
+VLDR.F64 D14, [R4]
+VSUB.F64 D15, D13, D14
+VDIV.F64 D0, D12, D15
+VMOV R3, R2, D0
+LDR R4, =RES_LINHA_35
+VSTR.F64 D0, [R4]
+RES_LINHA_36: .double 0.0
+LDR R4, =const_97
+VLDR.F64 D1, [R4]
+LDR R4, =MEM1
+VSTR.F64 D1, [R4]
+VMOV R3, R2, D1
+LDR R4, =RES_LINHA_36
+VSTR.F64 D1, [R4]
+RES_LINHA_37: .double 0.0
+LDR R4, =const_98
+VLDR.F64 D2, [R4]
+LDR R4, =const_99
+VLDR.F64 D3, [R4]
+VADD.F64 D4, D2, D3
+LDR R4, =MEM2
+VSTR.F64 D4, [R4]
+VMOV R3, R2, D4
+LDR R4, =RES_LINHA_37
+VSTR.F64 D4, [R4]
+RES_LINHA_38: .double 0.0
+LDR R4, =MEM1
+VLDR.F64 D5, [R4]
+VMOV R3, R2, D5
+LDR R4, =RES_LINHA_38
+VSTR.F64 D5, [R4]
+RES_LINHA_39: .double 0.0
+LDR R4, =MEM2
+VLDR.F64 D6, [R4]
+VMOV R3, R2, D6
+LDR R4, =RES_LINHA_39
+VSTR.F64 D6, [R4]
+RES_LINHA_40: .double 0.0
+LDR R4, =const_103
+VLDR.F64 D7, [R4]
+LDR R4, =const_104
+VLDR.F64 D8, [R4]
+VMUL.F64 D9, D7, D8
+LDR R4, =const_106
+VLDR.F64 D10, [R4]
+LDR R4, =const_107
+VLDR.F64 D11, [R4]
+VADD.F64 D12, D10, D11
+VDIV.F64 D13, D9, D12
+VMOV R3, R2, D13
+LDR R4, =RES_LINHA_40
+VSTR.F64 D13, [R4]
+RES_LINHA_41: .double 0.0
+LDR R4, =const_110
+VLDR.F64 D14, [R4]
+LDR R4, =const_111
+VLDR.F64 D15, [R4]
+VDIV.F64 D0, D14, D15
+VMOV R3, R2, D0
+LDR R4, =RES_LINHA_41
+VSTR.F64 D0, [R4]
+RES_LINHA_42: .double 0.0
+LDR R4, =const_113
+VLDR.F64 D1, [R4]
+LDR R4, =const_114
+VLDR.F64 D2, [R4]
+
+        VDIV.F64 D3, D1, D2
+        VCVT.S32.F64 S0, D3
+        VCVT.F64.S32 D3, S0
+    
+VMOV R3, R2, D3
+LDR R4, =RES_LINHA_42
+VSTR.F64 D3, [R4]
+RES_LINHA_43: .double 0.0
+LDR R4, =const_116
+VLDR.F64 D4, [R4]
+LDR R4, =const_117
+VLDR.F64 D5, [R4]
+
+        @ quociente em double
+        VDIV.F64 D10, D4, D5
+
+        @ parte inteira do quociente
+        VCVT.S32.F64 S10, D10
+
+        @ volta pra double
+        VCVT.F64.S32 D11, S10
+
+        @ multiplica pelo divisor
+        VMUL.F64 D11, D11, D5
+
+        @ resto = op1 - (quociente * op2)
+        VSUB.F64 D6, D4, D11
+    
+VMOV R3, R2, D6
+LDR R4, =RES_LINHA_43
+VSTR.F64 D6, [R4]
+RES_LINHA_44: .double 0.0
+LDR R4, =const_119
+VLDR.F64 D7, [R4]
+LDR R4, =const_120
+VLDR.F64 D8, [R4]
+
+        VCVT.S32.F64 S0, D8 
+        VMOV R0, S0
+
+        LDR R1, =um
+        VLDR.F64 D9, [R1]
+
+        CMP R0, #0
+        BLE pow_end_121
+
+        pow_loop_121:
+        VMUL.F64 D9, D9, D7
+        SUB R0, R0, #1
+        CMP R0, #0
+        BGT pow_loop_121
+
+        pow_end_121:
+    
+VMOV R3, R2, D9
+LDR R4, =RES_LINHA_44
+VSTR.F64 D9, [R4]
+RES_LINHA_45: .double 0.0
+LDR R4, =const_122
+VLDR.F64 D10, [R4]
+LDR R4, =const_123
+VLDR.F64 D11, [R4]
+VADD.F64 D12, D10, D11
+LDR R4, =const_125
+VLDR.F64 D13, [R4]
+LDR R4, =const_126
+VLDR.F64 D14, [R4]
+VSUB.F64 D15, D13, D14
+VMUL.F64 D0, D12, D15
+VMOV R3, R2, D0
+LDR R4, =RES_LINHA_45
+VSTR.F64 D0, [R4]
+RES_LINHA_46: .double 0.0
+LDR R4, =const_129
+VLDR.F64 D1, [R4]
+LDR R4, =const_130
+VLDR.F64 D2, [R4]
+VMUL.F64 D3, D1, D2
+VMOV R3, R2, D3
+LDR R4, =RES_LINHA_46
+VSTR.F64 D3, [R4]
+RES_LINHA_47: .double 0.0
+LDR R4, =const_132
+VLDR.F64 D4, [R4]
+LDR R4, =const_133
+VLDR.F64 D5, [R4]
+VADD.F64 D6, D4, D5
+VMOV R3, R2, D6
+LDR R4, =RES_LINHA_47
+VSTR.F64 D6, [R4]
+RES_LINHA_48: .double 0.0
+LDR R4, =const_135
+VLDR.F64 D7, [R4]
+LDR R4, =const_136
+VLDR.F64 D8, [R4]
+VDIV.F64 D9, D7, D8
+VMOV R3, R2, D9
+LDR R4, =RES_LINHA_48
+VSTR.F64 D9, [R4]
+RES_LINHA_49: .double 0.0
+LDR R4, =const_138
+VLDR.F64 D10, [R4]
+LDR R4, =const_139
+VLDR.F64 D11, [R4]
+VDIV.F64 D12, D10, D11
+VMOV R3, R2, D12
+LDR R4, =RES_LINHA_49
+VSTR.F64 D12, [R4]
+RES_LINHA_50: .double 0.0
+LDR R4, =const_141
+VLDR.F64 D13, [R4]
+LDR R4, =const_142
+VLDR.F64 D14, [R4]
+VADD.F64 D15, D13, D14
+VMOV R3, R2, D15
+LDR R4, =RES_LINHA_50
+VSTR.F64 D15, [R4]
+RES_LINHA_51: .double 0.0
+LDR R4, =const_144
+VLDR.F64 D0, [R4]
+LDR R4, =const_145
+VLDR.F64 D1, [R4]
+VADD.F64 D2, D0, D1
+VMOV R3, R2, D2
+LDR R4, =RES_LINHA_51
+VSTR.F64 D2, [R4]
+RES_LINHA_52: .double 0.0
+LDR R4, =const_147
+VLDR.F64 D3, [R4]
+LDR R4, =const_148
+VLDR.F64 D4, [R4]
+VADD.F64 D5, D3, D4
+VMOV R3, R2, D5
+LDR R4, =RES_LINHA_52
+VSTR.F64 D5, [R4]
+RES_LINHA_53: .double 0.0
+LDR R4, =RES_LINHA_52
+VLDR.F64 D6, [R4]
+VMOV R3, R2, D6
+LDR R4, =RES_LINHA_53
+VSTR.F64 D6, [R4]
+RES_LINHA_54: .double 0.0
+LDR R4, =RES_LINHA_53
+VLDR.F64 D7, [R4]
+VMOV R3, R2, D7
+LDR R4, =RES_LINHA_54
+VSTR.F64 D7, [R4]
+RES_LINHA_55: .double 0.0
+LDR R4, =RES_LINHA_54
+VLDR.F64 D8, [R4]
+VMOV R3, R2, D8
+LDR R4, =RES_LINHA_55
+VSTR.F64 D8, [R4]
+RES_LINHA_56: .double 0.0
+LDR R4, =const_153
+VLDR.F64 D9, [R4]
+LDR R4, =XVAR
+VSTR.F64 D9, [R4]
+VMOV R3, R2, D9
+LDR R4, =RES_LINHA_56
+VSTR.F64 D9, [R4]
+RES_LINHA_57: .double 0.0
+LDR R4, =const_154
+VLDR.F64 D10, [R4]
+LDR R4, =const_155
+VLDR.F64 D11, [R4]
+VADD.F64 D12, D10, D11
+LDR R4, =YVAR
+VSTR.F64 D12, [R4]
+VMOV R3, R2, D12
+LDR R4, =RES_LINHA_57
+VSTR.F64 D12, [R4]
+RES_LINHA_58: .double 0.0
+LDR R4, =XVAR
+VLDR.F64 D13, [R4]
+VMOV R3, R2, D13
+LDR R4, =RES_LINHA_58
+VSTR.F64 D13, [R4]
+RES_LINHA_59: .double 0.0
+LDR R4, =YVAR
+VLDR.F64 D14, [R4]
+VMOV R3, R2, D14
+LDR R4, =RES_LINHA_59
+VSTR.F64 D14, [R4]
+VMOV R3, R2, D14
+
+    @ cópia para área fixa do display (D14); literais via R4
+    VMOV.F64 D14, D14
+
+    @ se |x| > 9999.9 -> copysign(9999.9, x)
+    LDR R4, =fp_zero
+    VLDR.F64 D15, [R4]
+    MOV R1, #0
+    VCMPE.F64 D14, D15
+    VMRS APSR_nzcv, FPSCR
+    MOVLT R1, #1
+
+    VABS.F64 D13, D14
+    LDR R4, =max_disp
+    VLDR.F64 D16, [R4]
+    VCMPE.F64 D13, D16
+    VMRS APSR_nzcv, FPSCR
+    BLE disp_apos_clamp
+
+    LDR R4, =max_disp
+    VLDR.F64 D14, [R4]
+    CMP R1, #0
+    BEQ disp_apos_clamp
+    VNEG.F64 D14, D14
+disp_apos_clamp:
+
+    @ === FPSCR: truncar (round toward zero) ===
+    VMRS R0, FPSCR
+    BIC  R0, R0, #0x00C00000
+    ORR  R0, R0, #0x00C00000
+    VMSR FPSCR, R0
+
+    @ sinal (negativo < 0.0), máscara 0x40 = segmento '-'
+    LDR R4, =fp_zero
+    VLDR.F64 D15, [R4]
+    VCMPE.F64 D14, D15
+    VMRS APSR_nzcv, FPSCR
+    MOV R6, #0
+    MOVLT R6, #0x40
+
+    @ parte inteira da magnitude |x| (trunc RZ)
+    VABS.F64 D13, D14
+    VCVT.S32.F64 S10, D13
+    VMOV R8, S10
+
+    @ 1ª decimal: dec = trunc(|x|*10 + eps) - trunc(|x|)*10
+    @ (evita frac = |x| - int(|x|), que vira 0.3999... e 10*frac -> 3 em vez de 4)
+    LDR R4, =dez
+    VLDR.F64 D12, [R4]
+    VMUL.F64 D11, D13, D12
+    LDR R4, =eps_dec
+    VLDR.F64 D15, [R4]
+    VADD.F64 D11, D11, D15
+    VCVT.S32.F64 S11, D11
+    VMOV R9, S11
+    MOV R1, #10
+    MUL R0, R8, R1
+    SUB R9, R9, R0
+
+    @ === FPSCR: volta round to nearest ===
+    VMRS R0, FPSCR
+    BIC  R0, R0, #0x00C00000
+    VMSR FPSCR, R0
+
+    CMP R9, #0
+    MOVLT R9, #0
+    CMP R9, #9
+    MOVGT R9, #9
+
+    MOV R5, #0
+    MOV R12, R8
+
+disp_mil_loop:
+    CMP R12, #1000
+    BLT disp_cent_loop
+    SUB R12, R12, #1000
+    ADD R5, R5, #1
+    B disp_mil_loop
+
+disp_cent_loop:
+    MOV R10, #0
+disp_cent_sub:
+    CMP R12, #100
+    BLT disp_dez_loop
+    SUB R12, R12, #100
+    ADD R10, R10, #1
+    B disp_cent_sub
+
+disp_dez_loop:
+    MOV R11, #0
+disp_dez_sub:
+    CMP R12, #10
+    BLT disp_seg_digitos
+    SUB R12, R12, #10
+    ADD R11, R11, #1
+    B disp_dez_sub
+
+disp_seg_digitos:
+    LDR R4, =digitos
+
+    @ HEX0..3: dec _ uni dez  (direita: 7 _ 6 5 em -456.7)
+    LDR R2, =0xFF200020
+    MOV R3, #0
+    LDR R0, [R4, R9, LSL #2]
+    ORR R3, R3, R0
+    MOV R1, #0x08
+    ORR R3, R3, R1, LSL #8
+    LDR R0, [R4, R12, LSL #2]
+    ORR R3, R3, R0, LSL #16
+    LDR R0, [R4, R11, LSL #2]
+    ORR R3, R3, R0, LSL #24
+    STR R3, [R2]
+
+    @ HEX4..5: cent | (milhar + sinal em HEX5)
+    LDR R2, =0xFF200030
+    MOV R3, #0
+    LDR R0, [R4, R10, LSL #2]
+    ORR R3, R3, R0
+    LDR R0, [R4, R5, LSL #2]
+    ORR R0, R0, R6
+    ORR R3, R3, R0, LSL #8
+    STR R3, [R2]
+    
+_end:
+B _end
