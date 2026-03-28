@@ -20,7 +20,7 @@ def salvarHistorico(resultado):
     historico_linha.append(resultado)
 
 def pegarHistorico(linha):
-    return historico_linha[len(historico_linha) - linha - 1]
+    return historico_linha[len(historico_linha) - linha]
 
 
 #validadores de formato:
