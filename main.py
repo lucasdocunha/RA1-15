@@ -254,6 +254,14 @@ def lerArquivo(nome_arquivo:str):
 def salvarArquivo(nome_arquivo:str, conteudo):
     with open(nome_arquivo, "w", encoding="utf-8") as f:
         f.write(conteudo)
+
+
+def salvar_tokens_txt(linhas_tokens: list[str]) -> None:
+    """Grava tokens.txt: uma linha por expressão, só o formato 'Linha N: [...]'."""
+    salvarArquivo(
+        "tokens.txt",
+        "\n".join(linhas_tokens) + ("\n" if linhas_tokens else ""),
+    )
         
 def gerarAssembly(expressao):    
     
@@ -654,10 +662,12 @@ if __name__ == ("__main__"):
     if linhas is None:
         sys.exit(1)
 
-    wagner = []
-        
+    lista_tokens = []
+    linhas_tokens = []
+
     for idx, linha in enumerate(linhas):
         tokens, erro = parseExpressao(linha)
+        linhas_tokens.append(f"Linha {idx+1}: {tokens}")
 
         print(f"\nLinha {idx+1}: {tokens}")
         if erro:
@@ -668,7 +678,8 @@ if __name__ == ("__main__"):
                 print(f"Linha inválida!")
             else:
                 print(f"Ordem de execução: {ordem}")
-                wagner.append(ordem)
+                lista_tokens.append(ordem)
     print("\nExpressões processadas:")
-    print(wagner)
-    salvarArquivo('saida.txt', gerarAssembly(wagner))
+    print(lista_tokens)
+    salvar_tokens_txt(linhas_tokens)
+    salvarArquivo('saida.txt', gerarAssembly(lista_tokens))
