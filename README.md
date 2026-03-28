@@ -22,8 +22,6 @@ Programa em **Python** que lê um ficheiro de texto com expressões em **notaç�
 - Se o valor (em módulo) **ultrapassar 9999.9**, ou ocorrer **divisão por zero**, o valor exibido **satura em 9999.9** (limite do visor).
 - Usamos um **epsilon** pequeno no Assembly (`eps_dec`) para o **arredondamento** da primeira decimal ficar estável e não aparecerem artefactos (por exemplo `0.3999…` em vez de `0.4`).
 
-## Requisitos
-
 
 ## Como executar
 
