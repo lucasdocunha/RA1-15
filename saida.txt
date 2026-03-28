@@ -23,10 +23,12 @@ const_6: .double 10.0
 const_7: .double 3.0
 const_9: .double 2.0
 const_10: .double 3.0
-const_13: .double 3.0
-const_14: .double 4.0
-const_19: .double 2.5
-const_20: .double 0.0
+VARIAVEL: .double 42.5
+const_12: .double 42.5
+const_14: .double 3.0
+const_15: .double 4.0
+const_21: .double 2.5
+const_22: .double 0.0
 .text
 .global _start
 _start:
@@ -103,41 +105,47 @@ VMOV R3, R2, D11
 LDR R4, =RES_LINHA_4
 VSTR.F64 D11, [R4]
 RES_LINHA_5: .double 0.0
-VMOV R3, R2, 
+LDR R4, =const_12
+VLDR.F64 D12, [R4]
+LDR R4, =VARIAVEL
+VSTR.F64 D12, [R4]
+VMOV R3, R2, D12
 LDR R4, =RES_LINHA_5
-VSTR.F64 , [R4]
+VSTR.F64 D12, [R4]
 RES_LINHA_6: .double 0.0
 LDR R4, =RES_LINHA_5
-VLDR.F64 D12, [R4]
-VMOV R3, R2, D12
-LDR R4, =RES_LINHA_6
-VSTR.F64 D12, [R4]
-RES_LINHA_7: .double 0.0
-LDR R4, =const_13
 VLDR.F64 D13, [R4]
+VMOV R3, R2, D13
+LDR R4, =RES_LINHA_6
+VSTR.F64 D13, [R4]
+RES_LINHA_7: .double 0.0
 LDR R4, =const_14
 VLDR.F64 D14, [R4]
-VMUL.F64 D15, D13, D14
-VADD.F64 D16, D15, D15
-LDR R4, =RES_LINHA_6
+LDR R4, =const_15
+VLDR.F64 D15, [R4]
+VMUL.F64 D16, D14, D15
+LDR R4, =VARIAVEL
 VLDR.F64 D17, [R4]
-VSUB.F64 D18, D16, D17
-VMOV R3, R2, D18
-LDR R4, =RES_LINHA_7
-VSTR.F64 D18, [R4]
-RES_LINHA_8: .double 0.0
-LDR R4, =const_19
+VADD.F64 D18, D16, D17
+LDR R4, =RES_LINHA_6
 VLDR.F64 D19, [R4]
-LDR R4, =const_20
-VLDR.F64 D20, [R4]
-VDIV.F64 D21, D19, D20
-VMOV R3, R2, D21
+VSUB.F64 D20, D18, D19
+VMOV R3, R2, D20
+LDR R4, =RES_LINHA_7
+VSTR.F64 D20, [R4]
+RES_LINHA_8: .double 0.0
+LDR R4, =const_21
+VLDR.F64 D21, [R4]
+LDR R4, =const_22
+VLDR.F64 D22, [R4]
+VDIV.F64 D23, D21, D22
+VMOV R3, R2, D23
 LDR R4, =RES_LINHA_8
-VSTR.F64 D21, [R4]
-VMOV R3, R2, D21
+VSTR.F64 D23, [R4]
+VMOV R3, R2, D23
 
     @ cópia para área fixa do display (D14); literais via R4
-    VMOV.F64 D14, D21
+    VMOV.F64 D14, D23
 
     @ === FPSCR: truncar (round toward zero) ===
     VMRS R0, FPSCR
